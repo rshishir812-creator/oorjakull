@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # AI Instructor-Led Yoga Class POC – Dynamic Highlight Mode (Groq)
 
 POC: instructor selects a known pose (no open-ended classification). The system evaluates alignment fidelity against that expected pose and provides dynamic, structured correction feedback.
@@ -75,3 +76,6 @@ Open the printed local URL.
 - Injury-aware corrections
 - Multi-user studio mode
 - Performance scoring system
+=======
+# Yoga_GenAI
+>>>>>>> 46fb71bb83a9688599836594e9ae21c231105e9f
