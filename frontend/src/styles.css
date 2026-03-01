@@ -51,3 +51,23 @@ body {
 .svg-glow {
   filter: drop-shadow(0 0 10px currentColor);
 }
+
+.calib-glow {
+  filter: drop-shadow(0 0 12px currentColor);
+}
+
+@keyframes calibPulse {
+  0% {
+    opacity: 0.85;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.85;
+  }
+}
+
+.calib-pulse {
+  animation: calibPulse 1.6s ease-in-out infinite;
+}

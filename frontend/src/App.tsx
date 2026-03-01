@@ -7,6 +7,76 @@ import UserCameraPanel from './components/UserCameraPanel'
 import { useThrottledState } from './hooks/useThrottledState'
 import { POSE_REFERENCES, worstSeverity } from './poses/reference'
 
+type FramingState = 'cameraLoading' | 'notFramed' | 'partiallyFramed' | 'handsNotRaised' | 'fullyFramed'
+
+const REQUIRED_LANDMARKS: Record<
+  string,
+  number
+> = {
+  nose: 0,
+  l_shoulder: 11,
+  r_shoulder: 12,
+  l_elbow: 13,
+  r_elbow: 14,
+  l_wrist: 15,
+  r_wrist: 16,
+  l_hip: 23,
+  r_hip: 24,
+  l_knee: 25,
+  r_knee: 26,
+  l_ankle: 27,
+  r_ankle: 28
+}
+
+function withinBoundsY(lm: Landmark) {
+  return lm.y >= 0 && lm.y <= 1
+}
+
+function isVisible(lm: Landmark) {
+  return lm.visibility > 0.6 && withinBoundsY(lm)
+}
+
+function computeFraming(landmarks: Landmark[] | null): { state: FramingState; message: string } {
+  const initialMsg =
+    'Stand fully within the frame. Raise both arms overhead and ensure your body is visible from fingertips to toes.'
+
+  if (!landmarks || landmarks.length !== 33) {
+    return { state: 'cameraLoading', message: initialMsg }
+  }
+
+  const requiredIdxs = Object.values(REQUIRED_LANDMARKS)
+  let visibleCount = 0
+  for (const idx of requiredIdxs) {
+    const lm = landmarks[idx]
+    if (lm && isVisible(lm)) visibleCount += 1
+  }
+
+  if (visibleCount === 0) {
+    return { state: 'notFramed', message: initialMsg }
+  }
+
+  if (visibleCount < requiredIdxs.length) {
+    return {
+      state: 'partiallyFramed',
+      message: 'Please step back slightly so your full body remains visible.'
+    }
+  }
+
+  const nose = landmarks[REQUIRED_LANDMARKS.nose]
+  const leftWrist = landmarks[REQUIRED_LANDMARKS.l_wrist]
+  const rightWrist = landmarks[REQUIRED_LANDMARKS.r_wrist]
+  const handsRaised = leftWrist.y < nose.y && rightWrist.y < nose.y
+
+  if (!handsRaised) {
+    return {
+      state: 'handsNotRaised',
+      message: 'Raise both arms straight above your head to complete framing.'
+    }
+  }
+
+  return { state: 'fullyFramed', message: 'You are now framed correctly — you may begin your practice.' }
+}
+
 function newClientId(): string {
   return crypto.randomUUID?.() ?? String(Date.now())
 }
@@ -19,6 +89,9 @@ export default function App() {
   const [voiceOn, setVoiceOn] = useState(false)
   const [layoutMode, setLayoutMode] = useState<LayoutMode>('laptop')
   const [evaluating, setEvaluating] = useState(false)
+
+  const [framingEnabled, setFramingEnabled] = useState(false)
+  const [framingUiVisible, setFramingUiVisible] = useState(false)
 
   const [statusText, setStatusText] = useState('Press Start to evaluate once.')
 
@@ -43,6 +116,17 @@ export default function App() {
   const countdownTimerRef = useRef<number | null>(null)
   const latestLandmarksRef = useRef<Landmark[] | null>(null)
   const latestVisibilityRef = useRef<number>(0)
+  const framingUiTimerRef = useRef<number | null>(null)
+
+  const [framing, setFraming] = useThrottledState<{ state: FramingState; message: string }>(
+    {
+      state: 'cameraLoading',
+      message:
+        'Stand fully within the frame. Raise both arms overhead and ensure your body is visible from fingertips to toes.'
+    },
+    2
+  )
+
   const alignedPulseTimerRef = useRef<number | null>(null)
   const [alignedPulseActive, setAlignedPulseActive] = useState(false)
   const [alignedPulseKey, setAlignedPulseKey] = useState(0)
@@ -52,6 +136,7 @@ export default function App() {
     : null
 
   const isAnalyzing = running || evaluating
+  const isFraming = framingEnabled
 
   const pageLayoutClass =
     layoutMode === 'laptop'
@@ -78,17 +163,7 @@ export default function App() {
     lastSpeakTsRef.current = now
   }, [alignment.correction_message, voiceOn])
 
-  function startSession() {
-    clientIdRef.current = newClientId()
-    setAlignment({
-      pose_match: 'partially_aligned',
-      confidence: 'low',
-      primary_focus_area: 'none',
-      deviations: [],
-      correction_message: 'Hold the pose. We will evaluate once.',
-      score: null
-    })
-
+  function runCountdownThenEvaluate() {
     if (countdownTimerRef.current) {
       window.clearInterval(countdownTimerRef.current)
       countdownTimerRef.current = null
@@ -120,7 +195,39 @@ export default function App() {
     countdownTimerRef.current = t
   }
 
+  function startSession() {
+    clientIdRef.current = newClientId()
+    setAlignment({
+      pose_match: 'partially_aligned',
+      confidence: 'low',
+      primary_focus_area: 'none',
+      deviations: [],
+      correction_message: 'Hold the pose. We will evaluate once.',
+      score: null
+    })
+
+    if (countdownTimerRef.current) {
+      window.clearInterval(countdownTimerRef.current)
+      countdownTimerRef.current = null
+    }
+
+    // Start evaluation immediately. Framing is an on-demand feature via the Reframe button.
+    setFramingEnabled(false)
+    setFramingUiVisible(false)
+    if (framingUiTimerRef.current) {
+      window.clearTimeout(framingUiTimerRef.current)
+      framingUiTimerRef.current = null
+    }
+    runCountdownThenEvaluate()
+  }
+
   function stopSession() {
+    setFramingEnabled(false)
+    setFramingUiVisible(false)
+    if (framingUiTimerRef.current) {
+      window.clearTimeout(framingUiTimerRef.current)
+      framingUiTimerRef.current = null
+    }
     if (countdownTimerRef.current) {
       window.clearInterval(countdownTimerRef.current)
       countdownTimerRef.current = null
@@ -128,6 +235,17 @@ export default function App() {
     setCountdown(0)
     setRunning(false)
     setStatusText('Paused.')
+  }
+
+  function reframeOnce() {
+    setFramingEnabled(true)
+    setFramingUiVisible(true)
+    if (framingUiTimerRef.current) {
+      window.clearTimeout(framingUiTimerRef.current)
+      framingUiTimerRef.current = null
+    }
+    setFraming(computeFraming(latestLandmarksRef.current))
+    setStatusText('Framing…')
   }
 
   async function doEvaluate() {
@@ -233,10 +351,19 @@ export default function App() {
 
             <button
               type="button"
-              onClick={() => (running ? stopSession() : startSession())}
+              onClick={() => (running || isFraming ? stopSession() : startSession())}
               className="h-10 rounded-2xl border border-white/10 bg-white/10 px-4 text-sm text-white transition-colors duration-300 ease-in-out hover:bg-white/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/25"
             >
-              {running ? 'Pause' : 'Start'}
+              {running ? 'Pause' : isFraming ? 'Cancel' : 'Start Evaluation'}
+            </button>
+
+            <button
+              type="button"
+              onClick={reframeOnce}
+              disabled={isAnalyzing || isFraming}
+              className="h-10 rounded-2xl border border-white/10 bg-white/10 px-4 text-sm text-white transition-colors duration-300 ease-in-out hover:bg-white/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/25 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Reframe
             </button>
 
             <label className="flex items-center gap-2 text-sm text-slate-200">
@@ -269,9 +396,28 @@ export default function App() {
               score={alignment.score}
               isAnalyzing={isAnalyzing}
               feedbackMessage={alignment.correction_message}
+              framingEnabled={framingUiVisible}
+              framingState={framing.state}
+              framingMessage={framing.message}
               onLandmarks={(lms, visMean) => {
                 latestLandmarksRef.current = lms
                 latestVisibilityRef.current = visMean
+
+                if (framingEnabled) {
+                  const next = computeFraming(lms)
+                  setFraming(next)
+                  if (next.state === 'fullyFramed') {
+                    setFramingEnabled(false)
+
+                    // Keep the success message visible briefly so it's readable from afar,
+                    // then fully hide the framing UI (framing is complete until user hits Reframe).
+                    if (framingUiTimerRef.current) window.clearTimeout(framingUiTimerRef.current)
+                    framingUiTimerRef.current = window.setTimeout(() => {
+                      setFramingUiVisible(false)
+                      framingUiTimerRef.current = null
+                    }, 2000)
+                  }
+                }
               }}
             />
           </div>

@@ -4,6 +4,7 @@ import { usePoseLandmarker } from '../hooks/usePoseLandmarker'
 import ConfidenceBadge from './ConfidenceBadge'
 import FeedbackPanel from './FeedbackPanel'
 import ScoreDisplay from './ScoreDisplay'
+import { AnimatePresence, motion } from 'framer-motion'
 
 function drawSkeleton(params: {
   canvas: HTMLCanvasElement
@@ -20,8 +21,8 @@ function drawSkeleton(params: {
   const w = displayWidth
   const h = displayHeight
 
-  // Video is displayed with object-contain, so account for letterboxing.
-  const scale = Math.min(w / videoWidth, h / videoHeight)
+  // Video is displayed with object-cover, so account for cropping.
+  const scale = Math.max(w / videoWidth, h / videoHeight)
   const drawnW = videoWidth * scale
   const drawnH = videoHeight * scale
   const offsetX = (w - drawnW) / 2
@@ -48,6 +49,9 @@ export default memo(function UserCameraPanel(props: {
   isAnalyzing: boolean
   feedbackMessage: string
   onLandmarks: (landmarks: Landmark[], visibilityMean: number) => void
+  framingEnabled: boolean
+  framingState: 'cameraLoading' | 'notFramed' | 'partiallyFramed' | 'handsNotRaised' | 'fullyFramed'
+  framingMessage: string
 }) {
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
@@ -73,7 +77,8 @@ export default memo(function UserCameraPanel(props: {
         })
         if (videoRef.current) {
           videoRef.current.srcObject = stream
-          await videoRef.current.play()
+          // Some browsers can reject autoplay even when muted; don't treat that as camera failure.
+          videoRef.current.play().catch(() => undefined)
         }
       } catch {
         setStreamError('Camera unavailable.')
@@ -89,9 +94,10 @@ export default memo(function UserCameraPanel(props: {
 
   useEffect(() => {
     let raf = 0
+    let lastLandmarksTs = 0
 
     const tick = async () => {
-      if (props.running && videoRef.current && canvasRef.current && ready) {
+      if (videoRef.current && canvasRef.current && ready) {
         const video = videoRef.current
         const canvas = canvasRef.current
 
@@ -117,18 +123,24 @@ export default memo(function UserCameraPanel(props: {
         const ctx = canvas.getContext('2d')
         if (ctx) ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
 
-        const landmarks = await getLandmarksFromVideo(video)
-        if (landmarks && landmarks.length === 33) {
-          drawSkeleton({
-            canvas,
-            landmarks,
-            displayWidth,
-            displayHeight,
-            videoWidth: video.videoWidth,
-            videoHeight: video.videoHeight
-          })
-          const visibilityMean = landmarks.reduce((a, l) => a + l.visibility, 0) / landmarks.length
-          props.onLandmarks(landmarks, visibilityMean)
+        // Performance: evaluate framing at max 2Hz.
+        const now = performance.now()
+        if (now - lastLandmarksTs >= 500) {
+          lastLandmarksTs = now
+
+          const landmarks = await getLandmarksFromVideo(video)
+          if (landmarks && landmarks.length === 33) {
+            drawSkeleton({
+              canvas,
+              landmarks,
+              displayWidth,
+              displayHeight,
+              videoWidth: video.videoWidth,
+              videoHeight: video.videoHeight
+            })
+            const visibilityMean = landmarks.reduce((a, l) => a + l.visibility, 0) / landmarks.length
+            props.onLandmarks(landmarks, visibilityMean)
+          }
         }
       }
       raf = requestAnimationFrame(tick)
@@ -139,6 +151,9 @@ export default memo(function UserCameraPanel(props: {
   }, [props.running, ready, getLandmarksFromVideo, props.onLandmarks])
 
   const headerBadge = ready ? 'MediaPipe ready' : 'Loading…'
+  const framed = props.framingState === 'fullyFramed'
+  const frameTone = framed ? 'text-emerald-200' : 'text-amber-200'
+  const framePulse = framed ? '' : 'calib-pulse'
 
   return (
     <div className="min-h-0 h-full rounded-2xl border border-white/10 bg-white/5 shadow-2xl shadow-black/30 backdrop-blur flex flex-col">
@@ -155,8 +170,40 @@ export default memo(function UserCameraPanel(props: {
       <div className="min-h-0 flex-1 px-3 pb-3">
         <div className="relative h-full overflow-hidden rounded-2xl border border-white/10 bg-black/40 shadow-xl shadow-black/30">
           <div ref={stageRef} className="relative h-full w-full">
-            <video ref={videoRef} playsInline muted className="absolute inset-0 h-full w-full object-contain" />
+            <video ref={videoRef} playsInline muted className="absolute inset-0 h-full w-full object-cover" />
             <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
+
+            <div className="pointer-events-none absolute inset-0 p-3">
+              {props.framingEnabled ? (
+                <div
+                  className={
+                    `h-full w-full rounded-2xl ring-2 transition-all duration-500 ease-in-out calib-glow ${frameTone} ` +
+                    (framed ? 'ring-emerald-300/50' : 'ring-amber-300/55 ') +
+                    framePulse
+                  }
+                />
+              ) : null}
+            </div>
+
+            {props.framingEnabled ? (
+              <div className="pointer-events-none absolute inset-0 grid place-items-center px-6">
+                <div className="w-full max-w-[560px]">
+                  <AnimatePresence mode="wait" initial={false}>
+                    <motion.div
+                      key={props.framingState + ':' + props.framingMessage}
+                      initial={{ opacity: 0, y: 2 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 2 }}
+                      transition={{ duration: 0.35, ease: 'easeInOut' }}
+                      className="rounded-2xl border border-white/10 bg-black/40 px-5 py-4 text-xl font-semibold text-slate-50 backdrop-blur text-center"
+                      style={{ minHeight: 72 }}
+                    >
+                      {props.framingMessage}
+                    </motion.div>
+                  </AnimatePresence>
+                </div>
+              </div>
+            ) : null}
 
             <div className="pointer-events-none absolute right-3 top-3 flex flex-col items-end gap-2">
               <ScoreDisplay score={props.score} isAnalyzing={props.isAnalyzing} variant="score" />
