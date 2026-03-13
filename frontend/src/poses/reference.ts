@@ -7,15 +7,15 @@ export type PoseReference = {
 }
 
 export const POSE_REFERENCES: PoseReference[] = [
-  { pose: 'Tadasana', kind: 'image', src: '/train/Tadasana.png' },
-  { pose: 'Warrior II', kind: 'image', src: '/train/Warrior.png' },
-  { pose: 'Down Dog', kind: 'image', src: '/train/Downdog.png' },
-  { pose: 'Goddess', kind: 'image', src: '/train/Godess.png' },
-  { pose: 'Plank', kind: 'image', src: '/train/Plank.png' },
-  { pose: 'Ashwa Sanchalanasana', kind: 'image', src: '/train/Ashwa Sanchalanasana.png' },
-  { pose: 'Hasta Uttanasana', kind: 'image', src: '/train/Hasta Uttanasana.png' },
-  { pose: 'Padahastasana', kind: 'image', src: '/train/Padahastasana.png' },
-  { pose: 'Pranamasana', kind: 'image', src: '/train/Pranamasana.jpeg' },
+  { pose: 'Tadasana', kind: 'image', src: '/poses/train/Tadasana.png' },
+  { pose: 'Warrior II', kind: 'image', src: '/poses/train/Warrior.png' },
+  { pose: 'Down Dog', kind: 'image', src: '/poses/train/Downdog.png' },
+  { pose: 'Goddess', kind: 'image', src: '/poses/train/Godess.png' },
+  { pose: 'Plank', kind: 'image', src: '/poses/train/Plank.png' },
+  { pose: 'Ashwa Sanchalanasana', kind: 'image', src: '/poses/train/Ashwa%20Sanchalanasana.png' },
+  { pose: 'Hasta Uttanasana', kind: 'image', src: '/poses/train/Hasta%20Uttanasana.png' },
+  { pose: 'Padahastasana', kind: 'image', src: '/poses/train/Padahastasana.png' },
+  { pose: 'Pranamasana', kind: 'image', src: '/poses/train/Pranamasana.jpeg' },
 ]
 
 export function severityColor(sev: Severity): string {

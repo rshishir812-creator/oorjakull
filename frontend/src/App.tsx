@@ -445,14 +445,13 @@ export default function App() {
 
   // ── Resolve first media src for the selected pose (for overlays) ─────────
   const poseMediaSrc: string | null = (() => {
+    // Prefer the static frontend image from POSE_REFERENCES (always available)
+    const ref = POSE_REFERENCES.find((p) => p.pose === expectedPose)
+    if (ref?.src) return ref.src
+    // Fallback to API-provided media
     const media = trainMediaByPose[expectedPose]?.[0]
     if (media) {
       return media.src.startsWith('http') ? media.src : `${baseUrl}${media.src}`
-    }
-    // Fallback to POSE_REFERENCES when the API hasn't returned media
-    const ref = POSE_REFERENCES.find((p) => p.pose === expectedPose)
-    if (ref?.src) {
-      return ref.src.startsWith('/train/') ? `${baseUrl}${ref.src}` : ref.src
     }
     return null
   })()

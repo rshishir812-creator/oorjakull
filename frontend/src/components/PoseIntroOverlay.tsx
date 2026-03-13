@@ -85,10 +85,10 @@ export default function PoseIntroOverlay({
 
           {/* Card content */}
           <div className="relative rounded-3xl border border-white/10 bg-black/50 p-8 text-center backdrop-blur">
-            {/* Thumbnail */}
+            {/* Reference image — large & prominent */}
             {fullSrc && (
               <motion.div
-                className="mx-auto mb-5 h-36 w-36 overflow-hidden rounded-2xl border border-white/10 shadow-2xl"
+                className="mx-auto mb-6 h-56 w-56 overflow-hidden rounded-2xl border-2 border-emerald-500/30 shadow-2xl shadow-emerald-900/30"
                 initial={{ opacity: 0, scale: 0.85 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.15, duration: 0.4 }}

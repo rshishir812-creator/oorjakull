@@ -49,11 +49,11 @@ export default memo(function InstructorPanel(props: {
   const kind = train?.kind ?? ref?.kind
   const src = train?.src ?? ref?.src ?? ''
   const mediaSrc = src
-    ? kind === 'video'
-      ? `${props.baseUrl}${src}`
-      : src.startsWith('/train/')
-        ? `${props.baseUrl}${src}`
-        : src
+    ? src.startsWith('http')
+      ? src
+      : src.startsWith('/poses/')
+        ? src                           // served by frontend (public dir)
+        : `${props.baseUrl}${src}`      // API-returned path
     : ''
 
   const recomputeFitRect = useMemo(() => {
