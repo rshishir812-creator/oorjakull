@@ -1,29 +1,52 @@
 import { useCallback, useRef } from 'react'
 
 /**
- * Pick an English-India voice for correct Sanskrit / yoga pose pronunciation.
- * Falls back through en-IN → en-US favourites → any English → first available.
+ * Pick a calm, natural-sounding female voice — ideal for a yoga instructor.
+ * Priority: female en-IN voices (best for Sanskrit) → female en-US/en-GB → any en voice.
  */
 function getPreferredVoice(): SpeechSynthesisVoice | null {
   const voices = window.speechSynthesis.getVoices()
   if (!voices.length) return null
 
-  // 1. Prefer well-known en-IN voices (best for Sanskrit names)
-  const EN_IN_NAMES = ['Microsoft Neerja', 'Neerja', 'Rishi', 'Veena', 'Lekha']
-  for (const name of EN_IN_NAMES) {
+  // 1. Premium female en-IN voices (calm, natural, great for Sanskrit)
+  const FEMALE_EN_IN = [
+    'Microsoft Neerja Online',  // Neural — very natural
+    'Microsoft Neerja',
+    'Neerja',
+    'Google हिन्दी',           // Some Chrome builds expose this for en-IN
+    'Veena',                    // macOS / iOS en-IN female
+    'Lekha',                    // macOS en-IN female
+  ]
+  for (const name of FEMALE_EN_IN) {
     const v = voices.find((v) => v.name.includes(name))
     if (v) return v
   }
-  // 2. Any en-IN voice
+
+  // 2. Any female-sounding en-IN voice (avoid "Rishi" which is male)
+  const enINFemale = voices.find(
+    (v) => v.lang === 'en-IN' && !v.name.toLowerCase().includes('rishi'),
+  )
+  if (enINFemale) return enINFemale
+
+  // 3. Any en-IN voice at all
   const enIN = voices.find((v) => v.lang === 'en-IN')
   if (enIN) return enIN
 
-  // 3. Fallback: well-known en-US voices → any en-US → any English → first
-  const FALLBACK = ['Samantha', 'Google US English', 'Microsoft Zira', 'Karen', 'Moira', 'Tessa']
-  for (const name of FALLBACK) {
+  // 4. Calm female voices from other English locales
+  const FEMALE_FALLBACK = [
+    'Samantha',             // macOS — warm, natural
+    'Karen',                // macOS en-AU — soft
+    'Moira',                // macOS en-IE — gentle
+    'Tessa',                // macOS en-ZA
+    'Google UK English Female',
+    'Google US English',
+    'Microsoft Zira',       // Windows en-US female
+  ]
+  for (const name of FEMALE_FALLBACK) {
     const v = voices.find((v) => v.name.includes(name))
     if (v) return v
   }
+
   return (
     voices.find((v) => v.lang === 'en-US') ??
     voices.find((v) => v.lang.startsWith('en')) ??
@@ -70,8 +93,9 @@ export function useVoiceGuide(voiceEnabled: boolean): VoiceGuide {
 
       const doSpeak = () => {
         const u = new SpeechSynthesisUtterance(text)
-        u.rate = 0.88
-        u.pitch = 1.0
+        u.rate = 0.82     // slower — calm, instructor-like pacing
+        u.pitch = 1.05    // slightly higher — softer, feminine tone
+        u.volume = 0.92   // slightly under max — gentler on the ear
         const voice = getPreferredVoice()
         if (voice) u.voice = voice
         if (onEnd) u.onend = () => onEnd()
@@ -111,8 +135,9 @@ export function useVoiceGuide(voiceEnabled: boolean): VoiceGuide {
 
       window.speechSynthesis.cancel()
       const u = new SpeechSynthesisUtterance(text)
-      u.rate = 0.88
-      u.pitch = 1.0
+      u.rate = 0.82     // calm, instructor-like pacing
+      u.pitch = 1.05    // softer, feminine tone
+      u.volume = 0.92   // gentle volume
       const voice = getPreferredVoice()
       if (voice) u.voice = voice
       if (onEnd) u.onend = () => onEnd()

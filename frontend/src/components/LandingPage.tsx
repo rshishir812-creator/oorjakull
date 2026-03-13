@@ -32,7 +32,7 @@ export default function LandingPage(props: {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.55, ease: 'easeOut' }}
         >
-          <h1 className="bg-gradient-to-r from-emerald-400 to-teal-300 bg-clip-text text-5xl font-bold tracking-tight text-transparent">
+          <h1 className="bg-gradient-to-r from-emerald-400 to-teal-300 bg-clip-text pb-2 text-5xl font-bold leading-relaxed tracking-normal text-transparent">
             OorjaKull AI Yoga
           </h1>
           <p className="mt-3 text-lg text-slate-300">
