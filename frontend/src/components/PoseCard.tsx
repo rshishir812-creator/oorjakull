@@ -3,6 +3,7 @@ import { POSE_DESCRIPTIONS } from '../data/poseDescriptions'
 
 /** Yoga-themed emoji for visual flair — keyed by pose name */
 const POSE_ICONS: Record<string, string> = {
+  'Tadasana': '🏔️',
   'Down Dog': '🐕',
   'Goddess': '👑',
   'Plank': '💪',

@@ -12,7 +12,11 @@ export const POSE_REFERENCES: PoseReference[] = [
   { pose: 'Tree Pose', kind: 'video', src: '/train/Tree_Pose.mp4' },
   { pose: 'Down Dog', kind: 'image', src: '/poses/train/downdog.jpg' },
   { pose: 'Goddess', kind: 'image', src: '/poses/train/goddess.jpg' },
-  { pose: 'Plank', kind: 'image', src: '/poses/train/plank.jpg' }
+  { pose: 'Plank', kind: 'image', src: '/poses/train/plank.jpg' },
+  { pose: 'Ashwa Sanchalanasana', kind: 'image', src: '' },
+  { pose: 'Hasta Uttanasana', kind: 'image', src: '' },
+  { pose: 'Padahastasana', kind: 'image', src: '' },
+  { pose: 'Pranamasana', kind: 'image', src: '' },
 ]
 
 export function severityColor(sev: Severity): string {

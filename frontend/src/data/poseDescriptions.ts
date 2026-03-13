@@ -5,6 +5,13 @@ export type PoseDescription = {
 }
 
 export const POSE_DESCRIPTIONS: Record<string, PoseDescription> = {
+  'Tadasana': {
+    sanskritName: 'Tadasana',
+    benefits:
+      'Mountain Pose is the foundation of all standing poses. It improves posture, strengthens the legs and core, and cultivates body awareness and steady balance.',
+    introScript:
+      "Welcome to Tadasana — the Mountain Pose. This is the foundation of your entire standing practice. Stand tall with your feet together, distribute your weight evenly, and draw your shoulders gently back and down. Engage your core, lengthen through the crown of your head, and feel yourself rooted like a mountain. Step into the frame and find your steady, powerful stance.",
+  },
   'Down Dog': {
     sanskritName: 'Adho Mukha Svanasana',
     benefits:
