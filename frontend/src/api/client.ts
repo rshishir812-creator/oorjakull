@@ -76,3 +76,33 @@ export async function evaluateAlignment(params: {
 
   return (await res.json()) as AlignmentResponse
 }
+
+/**
+ * Call the backend Cloud TTS endpoint and return an audio Blob (MP3).
+ * Throws on network or API errors.
+ */
+export async function synthesizeSpeech(params: {
+  baseUrl: string
+  text: string
+  gender: 'male' | 'female'
+  speed: number
+  pitch: number
+}): Promise<Blob> {
+  const res = await fetch(`${params.baseUrl}/api/tts`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      text: params.text,
+      gender: params.gender,
+      speed: params.speed,
+      pitch: params.pitch,
+    }),
+  })
+
+  if (!res.ok) {
+    const detail = await res.text().catch(() => 'Unknown error')
+    throw new Error(`TTS error ${res.status}: ${detail}`)
+  }
+
+  return res.blob()
+}

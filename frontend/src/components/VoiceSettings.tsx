@@ -1,57 +1,18 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import type { VoiceSettings as VoiceSettingsType, VoiceGender } from '../hooks/useVoiceGuide'
-import { hasEnINVoice } from '../hooks/useVoiceGuide'
-
-/** Return all English voices on this device, en-IN voices sorted first. */
-function getAvailableVoices(): SpeechSynthesisVoice[] {
-  return window.speechSynthesis
-    .getVoices()
-    .filter((v) => v.lang.startsWith('en') || v.lang.startsWith('hi'))
-    .sort((a, b) => {
-      // en-IN voices first
-      const aIN = a.lang.includes('IN') ? 0 : 1
-      const bIN = b.lang.includes('IN') ? 0 : 1
-      if (aIN !== bIN) return aIN - bIN
-      return a.name.localeCompare(b.name)
-    })
-}
 
 export default function VoiceSettings(props: {
   voiceOn: boolean
   onToggleVoice: (on: boolean) => void
   settings: VoiceSettingsType
   onChangeSettings: (s: VoiceSettingsType) => void
+  onPreview?: () => void
 }) {
-  const { voiceOn, onToggleVoice, settings, onChangeSettings } = props
-  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([])
+  const { voiceOn, onToggleVoice, settings, onChangeSettings, onPreview } = props
   const [open, setOpen] = useState(false)
-  const [maleAvailable, setMaleAvailable] = useState(true)
-
-  useEffect(() => {
-    const load = () => {
-      setVoices(getAvailableVoices())
-      setMaleAvailable(hasEnINVoice('male'))
-    }
-    load()
-    window.speechSynthesis.addEventListener('voiceschanged', load)
-    return () => window.speechSynthesis.removeEventListener('voiceschanged', load)
-  }, [])
-
-  const previewVoice = () => {
-    window.speechSynthesis.cancel()
-    const u = new SpeechSynthesisUtterance('Namaste. Welcome to your practice.')
-    u.rate = settings.rate
-    u.pitch = settings.pitch
-    u.volume = settings.volume
-    if (settings.voiceName) {
-      const v = voices.find((v) => v.name === settings.voiceName)
-      if (v) u.voice = v
-    }
-    window.speechSynthesis.speak(u)
-  }
 
   const setGender = (g: VoiceGender) => {
-    onChangeSettings({ ...settings, gender: g, voiceName: null })
+    onChangeSettings({ ...settings, gender: g })
   }
 
   return (
@@ -82,6 +43,11 @@ export default function VoiceSettings(props: {
         <div className="absolute right-0 top-12 w-72 rounded-2xl border border-white/10 bg-slate-900/95 p-4 shadow-2xl shadow-black/50 backdrop-blur-lg">
           <h4 className="mb-3 text-sm font-semibold text-white">Voice Settings</h4>
 
+          {/* Cloud TTS badge */}
+          <div className="mb-3 flex items-center gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5 text-[11px] text-emerald-300">
+            ☁️ Using Google Cloud TTS — consistent across all browsers
+          </div>
+
           {/* Gender toggle */}
           <label className="block text-xs text-slate-400 mb-1">Voice</label>
           <div className="flex gap-1 rounded-xl border border-white/10 bg-white/5 p-1">
@@ -102,31 +68,10 @@ export default function VoiceSettings(props: {
             ))}
           </div>
 
-          {/* Male voice unavailability warning */}
-          {settings.gender === 'male' && !maleAvailable && (
-            <div className="mt-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-300">
-              ⚠ Male en-IN voice not available on this browser. Using best available en-IN voice instead.
-            </div>
-          )}
-
-          {/* Specific voice selector (en-IN voices only) */}
-          <label className="mt-3 block text-xs text-slate-400">
-            Specific voice
-            <select
-              value={settings.voiceName ?? ''}
-              onChange={(e) =>
-                onChangeSettings({ ...settings, voiceName: e.target.value || null })
-              }
-              className="mt-1 block w-full rounded-lg border border-white/10 bg-slate-800 px-2 py-1.5 text-xs text-slate-200 focus:border-emerald-500 focus:outline-none"
-            >
-              <option value="">Auto (recommended)</option>
-              {voices.map((v) => (
-                <option key={v.name} value={v.name}>
-                  {v.name}
-                </option>
-              ))}
-            </select>
-          </label>
+          {/* Voice info */}
+          <div className="mt-2 text-[11px] text-slate-500">
+            {settings.gender === 'female' ? 'en-IN Neural2-A' : 'en-IN Neural2-B'} · Indian English
+          </div>
 
           {/* Speed */}
           <label className="mt-3 block text-xs text-slate-400">
@@ -188,8 +133,9 @@ export default function VoiceSettings(props: {
           <div className="mt-4 flex gap-2">
             <button
               type="button"
-              onClick={previewVoice}
-              className="flex-1 rounded-lg bg-emerald-600 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-emerald-500"
+              onClick={onPreview}
+              disabled={!onPreview}
+              className="flex-1 rounded-lg bg-emerald-600 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-emerald-500 disabled:opacity-50"
             >
               ▶ Preview
             </button>

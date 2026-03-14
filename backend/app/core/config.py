@@ -39,6 +39,9 @@ class Settings:
     gemini_model: str = get_env("GEMINI_MODEL", "gemini-2.5-pro") or "gemini-2.5-pro"
     gemini_temperature: float = float(get_env("GEMINI_TEMPERATURE", "0.3") or "0.3")
 
+    # Google Cloud Text-to-Speech (consistent voice across all browsers)
+    google_tts_api_key: str | None = get_env("GOOGLE_TTS_API_KEY") or get_env("GEMINI_API_KEY")
+
     # Performance constraints
     gemini_min_interval_s: float = float(get_env("GEMINI_MIN_INTERVAL_S", "1.0") or "1.0")
     gemini_unchanged_cooldown_s: float = float(get_env("GEMINI_UNCHANGED_COOLDOWN_S", "3.0") or "3.0")

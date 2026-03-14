@@ -1,119 +1,123 @@
 import { useCallback, useRef } from 'react'
+import { synthesizeSpeech } from '../api/client'
 
 export type VoiceGender = 'male' | 'female'
 
-/**
- * Named en-IN voices grouped by gender.
- * These cover Windows (Edge/Chrome Neural), macOS, iOS, and Android.
- */
-const FEMALE_EN_IN = [
-  'Microsoft Neerja Online',     // Edge Neural — very natural
-  'Microsoft Neerja',
-  'Neerja',
-  'Microsoft Aarav Online',      // Edge Neural alternate female
-  'Google हिन्दी',              // Some Chrome builds expose this for en-IN
-  'Veena',                       // macOS / iOS en-IN female
-  'Lekha',                       // macOS en-IN female
-  'Aditi',                       // Amazon Polly en-IN female (Chrome/Android)
-  'Kajal',                       // Google TTS en-IN female
-  'Priya',                       // Various TTS engines
-  'Divya',                       // Some Android en-IN female
-  'Ankita',                      // Some Android / Samsung en-IN female
-]
-
-const MALE_EN_IN = [
-  'Microsoft Prabhat Online',  // Edge Neural male
-  'Microsoft Prabhat',
-  'Prabhat',
-  'Rishi',                     // macOS / iOS en-IN male
-]
-
-/**
- * Pick an en-IN voice matching the requested gender.
- * Fallback order: named list → any en-IN matching gender → any en-IN → null.
- * We intentionally do NOT fall back to UK/US/AU voices.
- */
-function getPreferredVoice(gender: VoiceGender = 'female'): SpeechSynthesisVoice | null {
-  const voices = window.speechSynthesis.getVoices()
-  if (!voices.length) return null
-
-  const nameList = gender === 'male' ? MALE_EN_IN : FEMALE_EN_IN
-  const avoidList = gender === 'male' ? FEMALE_EN_IN : MALE_EN_IN
-
-  // 1. Try named voices for the preferred gender
-  for (const name of nameList) {
-    const v = voices.find((v) => v.name.includes(name))
-    if (v) return v
-  }
-
-  // 2. Any en-IN voice that is NOT in the opposite-gender list
-  const enINMatch = voices.find(
-    (v) =>
-      v.lang === 'en-IN' &&
-      !avoidList.some((n) => v.name.toLowerCase().includes(n.toLowerCase())),
-  )
-  if (enINMatch) return enINMatch
-
-  // 3. Any en-IN voice at all (better than nothing)
-  const enIN = voices.find((v) => v.lang === 'en-IN')
-  if (enIN) return enIN
-
-  // No en-IN voice available — return null so caller can show a warning
-  return null
-}
-
-/** Check whether at least one en-IN voice exists for the given gender. */
-export function hasEnINVoice(gender: VoiceGender): boolean {
-  const voices = window.speechSynthesis.getVoices()
-  if (!voices.length) return false
-  const nameList = gender === 'male' ? MALE_EN_IN : FEMALE_EN_IN
-  // Check named voices first
-  if (nameList.some((n) => voices.some((v) => v.name.includes(n)))) return true
-  // Check any en-IN voice
-  return voices.some((v) => v.lang === 'en-IN')
-}
-
 export interface VoiceSettings {
-  rate: number          // 0.5 – 2
-  pitch: number         // 0 – 2
-  volume: number        // 0 – 1
-  voiceName: string | null  // null = auto-select
-  gender: VoiceGender   // male or female
+  rate: number          // 0.5 – 1.5  → maps to Cloud TTS speakingRate
+  pitch: number         // 0.5 – 1.5  → mapped to semitones: (pitch - 1) * 20
+  volume: number        // 0 – 1      → applied client-side on the Audio element
+  gender: VoiceGender   // selects en-IN-Neural2-A (female) or en-IN-Neural2-B (male)
 }
 
 export const DEFAULT_VOICE_SETTINGS: VoiceSettings = {
   rate: 1.00,
   pitch: 1.05,
   volume: 0.92,
-  voiceName: null,
   gender: 'female',
 }
 
 export interface VoiceGuide {
-  /** Speak text. onEnd fires when utterance completes (or after 5 s if voice disabled). */
+  /** Speak text via Cloud TTS. onEnd fires when audio completes (or after 5 s if voice disabled). */
   speak: (text: string, onEnd?: () => void) => void
   /**
    * Rate-limited speak for live feedback (2 s min gap, skips duplicate text).
-   * onEnd fires when utterance completes.
+   * onEnd fires when audio completes.
    */
   speakFeedback: (text: string, onEnd?: () => void) => void
-  /** Cancel any in-progress speech. */
+  /** Cancel any in-progress audio. */
   cancel: () => void
 }
 
-export function useVoiceGuide(voiceEnabled: boolean, settings: VoiceSettings = DEFAULT_VOICE_SETTINGS): VoiceGuide {
+// ── In-memory audio cache ──────────────────────────────────────────────────
+// Key: `${gender}:${rate}:${pitch}:${text}` → Value: Blob (MP3)
+const audioCache = new Map<string, Blob>()
+const MAX_CACHE = 50
+
+function cacheKey(text: string, gender: VoiceGender, rate: number, pitch: number): string {
+  return `${gender}:${rate.toFixed(2)}:${pitch.toFixed(2)}:${text}`
+}
+
+function cacheSet(key: string, blob: Blob) {
+  if (audioCache.size >= MAX_CACHE) {
+    // Evict oldest entry
+    const firstKey = audioCache.keys().next().value
+    if (firstKey !== undefined) audioCache.delete(firstKey)
+  }
+  audioCache.set(key, blob)
+}
+
+// ── Resolve the backend base URL (same logic as App.tsx) ───────────────────
+function getBaseUrl(): string {
+  return (
+    (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, '') ??
+    'http://localhost:8000'
+  )
+}
+
+export function useVoiceGuide(
+  voiceEnabled: boolean,
+  settings: VoiceSettings = DEFAULT_VOICE_SETTINGS,
+): VoiceGuide {
   const lastSpokenRef = useRef<string>('')
   const lastSpeakTsRef = useRef<number>(0)
   const silentTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const currentAudioRef = useRef<HTMLAudioElement | null>(null)
+  const currentObjectUrlRef = useRef<string | null>(null)
+
+  /** Stop currently-playing audio and revoke its object URL. */
+  const stopAudio = useCallback(() => {
+    const audio = currentAudioRef.current
+    if (audio) {
+      audio.pause()
+      audio.onended = null
+      audio.onerror = null
+      currentAudioRef.current = null
+    }
+    if (currentObjectUrlRef.current) {
+      URL.revokeObjectURL(currentObjectUrlRef.current)
+      currentObjectUrlRef.current = null
+    }
+  }, [])
+
+  /** Play a Blob and call onEnd when it finishes. */
+  const playBlob = useCallback(
+    (blob: Blob, volume: number, onEnd?: () => void) => {
+      stopAudio()
+      const url = URL.createObjectURL(blob)
+      currentObjectUrlRef.current = url
+      const audio = new Audio(url)
+      audio.volume = volume
+      currentAudioRef.current = audio
+      audio.onended = () => {
+        stopAudio()
+        onEnd?.()
+      }
+      audio.onerror = () => {
+        stopAudio()
+        onEnd?.()
+      }
+      audio.play().catch(() => {
+        stopAudio()
+        onEnd?.()
+      })
+    },
+    [stopAudio],
+  )
 
   const speak = useCallback(
     (text: string, onEnd?: () => void) => {
+      // Clear any pending silent timer
       if (silentTimerRef.current !== null) {
         clearTimeout(silentTimerRef.current)
         silentTimerRef.current = null
       }
 
+      // Stop any currently-playing audio
+      stopAudio()
+
       if (!voiceEnabled) {
+        // When voice is off, fire onEnd after 5 s so the app flow continues
         if (onEnd) {
           silentTimerRef.current = setTimeout(() => {
             silentTimerRef.current = null
@@ -123,31 +127,39 @@ export function useVoiceGuide(voiceEnabled: boolean, settings: VoiceSettings = D
         return
       }
 
-      window.speechSynthesis.cancel()
+      const key = cacheKey(text, settings.gender, settings.rate, settings.pitch)
+      const cached = audioCache.get(key)
 
-      const doSpeak = () => {
-        const u = new SpeechSynthesisUtterance(text)
-        u.rate = settings.rate
-        u.pitch = settings.pitch
-        u.volume = settings.volume
-        const voice = settings.voiceName
-          ? window.speechSynthesis.getVoices().find((v) => v.name === settings.voiceName) ?? getPreferredVoice(settings.gender)
-          : getPreferredVoice(settings.gender)
-        if (voice) u.voice = voice
-        if (onEnd) u.onend = () => onEnd()
-        window.speechSynthesis.speak(u)
+      if (cached) {
+        playBlob(cached, settings.volume, onEnd)
+        return
       }
 
-      if (window.speechSynthesis.getVoices().length > 0) {
-        doSpeak()
-      } else {
-        window.speechSynthesis.addEventListener('voiceschanged', doSpeak, { once: true })
-        setTimeout(() => {
-          if (!window.speechSynthesis.speaking) doSpeak()
-        }, 300)
-      }
+      // Map pitch from 0.5-1.5 slider to -10..+10 semitones for Cloud TTS
+      const pitchSemitones = (settings.pitch - 1.0) * 20.0
+
+      synthesizeSpeech({
+        baseUrl: getBaseUrl(),
+        text,
+        gender: settings.gender,
+        speed: settings.rate,
+        pitch: pitchSemitones,
+      })
+        .then((blob) => {
+          cacheSet(key, blob)
+          playBlob(blob, settings.volume, onEnd)
+        })
+        .catch(() => {
+          // TTS failed — fire onEnd after a short delay so app flow isn't stuck
+          if (onEnd) {
+            silentTimerRef.current = setTimeout(() => {
+              silentTimerRef.current = null
+              onEnd()
+            }, 2000)
+          }
+        })
     },
-    [voiceEnabled, settings],
+    [voiceEnabled, settings, stopAudio, playBlob],
   )
 
   const speakFeedback = useCallback(
@@ -169,19 +181,10 @@ export function useVoiceGuide(voiceEnabled: boolean, settings: VoiceSettings = D
       lastSpokenRef.current = text
       lastSpeakTsRef.current = now
 
-      window.speechSynthesis.cancel()
-      const u = new SpeechSynthesisUtterance(text)
-      u.rate = settings.rate
-      u.pitch = settings.pitch
-      u.volume = settings.volume
-      const voice = settings.voiceName
-        ? window.speechSynthesis.getVoices().find((v) => v.name === settings.voiceName) ?? getPreferredVoice(settings.gender)
-        : getPreferredVoice(settings.gender)
-      if (voice) u.voice = voice
-      if (onEnd) u.onend = () => onEnd()
-      window.speechSynthesis.speak(u)
+      // Reuse speak() which handles caching, audio playback, and error fallback
+      speak(text, onEnd)
     },
-    [voiceEnabled, settings],
+    [voiceEnabled, speak],
   )
 
   const cancel = useCallback(() => {
@@ -189,8 +192,8 @@ export function useVoiceGuide(voiceEnabled: boolean, settings: VoiceSettings = D
       clearTimeout(silentTimerRef.current)
       silentTimerRef.current = null
     }
-    window.speechSynthesis.cancel()
-  }, [])
+    stopAudio()
+  }, [stopAudio])
 
   return { speak, speakFeedback, cancel }
 }

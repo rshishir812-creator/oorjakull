@@ -1,14 +1,17 @@
 from __future__ import annotations
 
+import base64
 import re
 from pathlib import Path
 
-from fastapi import FastAPI
+import httpx
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import Response
 from fastapi.staticfiles import StaticFiles
 
 from app.core.config import settings
-from app.models.contracts import EvaluateRequest, GeminiAlignmentResponse
+from app.models.contracts import EvaluateRequest, GeminiAlignmentResponse, TTSRequest
 from app.services.evaluator import AlignmentEvaluator
 
 app = FastAPI(title="Yoga GenAI POC", version="0.1.0")
@@ -105,10 +108,58 @@ app.add_middleware(
 
 evaluator = AlignmentEvaluator()
 
+# ── Google Cloud Text-to-Speech voices ──────────────────────────────────────
+# Neural2 voices for en-IN — consistent across all browsers.
+_TTS_VOICES = {
+    "female": "en-IN-Neural2-A",
+    "male": "en-IN-Neural2-B",
+}
+_TTS_API_URL = "https://texttospeech.googleapis.com/v1/text:synthesize"
+
 
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@app.post("/api/tts")
+async def text_to_speech(req: TTSRequest) -> Response:
+    """Synthesize speech using Google Cloud TTS and return MP3 audio bytes."""
+    api_key = settings.google_tts_api_key
+    if not api_key:
+        raise HTTPException(
+            status_code=503,
+            detail="TTS API key not configured. Set GOOGLE_TTS_API_KEY env var.",
+        )
+
+    voice_name = _TTS_VOICES.get(req.gender, _TTS_VOICES["female"])
+
+    body = {
+        "input": {"text": req.text},
+        "voice": {
+            "languageCode": "en-IN",
+            "name": voice_name,
+        },
+        "audioConfig": {
+            "audioEncoding": "MP3",
+            "speakingRate": req.speed,
+            "pitch": req.pitch,
+        },
+    }
+
+    async with httpx.AsyncClient() as client:
+        resp = await client.post(
+            f"{_TTS_API_URL}?key={api_key}",
+            json=body,
+            timeout=15.0,
+        )
+
+    if resp.status_code != 200:
+        detail = resp.text[:200] if resp.text else "Unknown TTS error"
+        raise HTTPException(status_code=502, detail=f"Google TTS error: {detail}")
+
+    audio_bytes = base64.b64decode(resp.json()["audioContent"])
+    return Response(content=audio_bytes, media_type="audio/mpeg")
 
 
 @app.post("/api/evaluate", response_model=GeminiAlignmentResponse)

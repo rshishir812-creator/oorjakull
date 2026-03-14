@@ -498,6 +498,7 @@ export default function App() {
                 onToggleVoice={setVoiceOn}
                 settings={voiceSettings}
                 onChangeSettings={setVoiceSettings}
+                onPreview={() => speak('Namaste. Welcome to your practice.')}
               />
             </div>
             <LandingPage

@@ -23,6 +23,14 @@ class EvaluateRequest(BaseModel):
     landmarks: list[Landmark] = Field(min_length=33, max_length=33)
 
 
+class TTSRequest(BaseModel):
+    """Request body for the text-to-speech endpoint."""
+    text: str = Field(min_length=1, max_length=5000)
+    gender: Literal["male", "female"] = "female"
+    speed: float = Field(default=1.0, ge=0.25, le=4.0)
+    pitch: float = Field(default=0.0, ge=-20.0, le=20.0)
+
+
 PoseMatch = Literal["aligned", "partially_aligned", "misaligned"]
 Confidence = Literal["high", "medium", "low"]
 FocusArea = Literal["front_knee", "back_leg", "arms", "torso", "hips", "balance", "none"]
