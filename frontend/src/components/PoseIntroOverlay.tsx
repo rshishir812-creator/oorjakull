@@ -50,7 +50,7 @@ export default function PoseIntroOverlay({
   feedbackSummary,
 }: PoseIntroOverlayProps) {
   const [showButton, setShowButton] = useState(false)
-  const isReady = visibleLandmarkCount >= 20
+  const isReady = visibleLandmarkCount >= 29
 
   // ── Auto-countdown for framing phase ─────────────────────────────────────
   const [framingCountdown, setFramingCountdown] = useState(0)

@@ -16,6 +16,20 @@ body {
   overflow: hidden;
 }
 
+/* ── Smooth theme transitions ────────────────────────────────────── */
+html {
+  color-scheme: light;
+}
+html.dark {
+  color-scheme: dark;
+}
+
+/* Transition background & text on theme switch */
+body,
+#root {
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
 .line-clamp-2 {
   display: -webkit-box;
   -webkit-line-clamp: 2;

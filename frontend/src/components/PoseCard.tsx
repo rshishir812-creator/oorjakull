@@ -27,7 +27,7 @@ export default function PoseCard(props: {
     <motion.button
       type="button"
       onClick={onClick}
-      className="group relative flex w-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-slate-800/80 shadow-xl shadow-black/30 backdrop-blur focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+      className="group relative flex w-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg shadow-slate-200/60 backdrop-blur transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 dark:border-white/10 dark:bg-slate-800/80 dark:shadow-xl dark:shadow-black/30"
       whileHover={{ scale: 1.03, y: -3 }}
       whileTap={{ scale: 0.97 }}
       transition={{ type: 'spring', stiffness: 300, damping: 22 }}
@@ -39,7 +39,7 @@ export default function PoseCard(props: {
       <div className="flex flex-col items-start p-4">
         {/* English name (white) + Sanskrit name (green) */}
         <div className="w-full">
-          <h3 className="text-base font-bold leading-snug text-white">
+          <h3 className="text-base font-bold leading-snug text-slate-900 dark:text-white">
             {desc?.englishName ?? poseName}
           </h3>
           {desc && (
@@ -51,14 +51,14 @@ export default function PoseCard(props: {
 
         {/* Benefits — clamped by default, full text on hover */}
         {desc && (
-          <p className="mt-2 text-left text-xs leading-relaxed text-slate-400 transition-all duration-300 line-clamp-3 group-hover:line-clamp-none group-hover:text-slate-300">
+          <p className="mt-2 text-left text-xs leading-relaxed text-slate-500 transition-all duration-300 line-clamp-3 group-hover:line-clamp-none group-hover:text-slate-700 dark:text-slate-400 dark:group-hover:text-slate-300">
             {desc.benefits}
           </p>
         )}
 
         {/* "Start" hint — appears on hover */}
         <div className="mt-3 flex w-full items-center justify-end">
-          <span className="text-[10px] font-semibold uppercase tracking-widest text-emerald-500/70 transition-colors group-hover:text-emerald-400">
+          <span className="text-[10px] font-semibold uppercase tracking-widest text-emerald-600/70 transition-colors group-hover:text-emerald-500 dark:text-emerald-500/70 dark:group-hover:text-emerald-400">
             Start →
           </span>
         </div>

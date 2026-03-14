@@ -23,7 +23,7 @@ export default function LandingPage(props: {
   const { poses, onSelectPose } = props
 
   return (
-    <div className="min-h-screen overflow-y-auto bg-gradient-to-b from-slate-950 via-slate-900 to-neutral-950 text-slate-50">
+    <div className="min-h-screen overflow-y-auto bg-gradient-to-b from-slate-50 via-white to-slate-100 text-slate-900 dark:from-slate-950 dark:via-slate-900 dark:to-neutral-950 dark:text-slate-50">
       <div className="mx-auto max-w-6xl px-4 py-12">
         {/* Header */}
         <motion.div
@@ -35,7 +35,7 @@ export default function LandingPage(props: {
           <h1 className="bg-gradient-to-r from-emerald-400 to-teal-300 bg-clip-text pb-2 text-5xl font-bold leading-relaxed tracking-normal text-transparent">
             OorjaKull AI Yoga
           </h1>
-          <p className="mt-3 text-lg text-slate-300">
+          <p className="mt-3 text-lg text-slate-500 dark:text-slate-300">
             Choose a pose to begin your guided practice
           </p>
           <div className="mx-auto mt-3 h-1 w-16 rounded-full bg-gradient-to-r from-emerald-500 to-teal-400" />
@@ -60,7 +60,7 @@ export default function LandingPage(props: {
         </motion.div>
 
         <motion.p
-          className="mt-10 text-center text-xs text-slate-500"
+          className="mt-10 text-center text-xs text-slate-400 dark:text-slate-500"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1 }}

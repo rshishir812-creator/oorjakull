@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 import re
 import time
 from dataclasses import dataclass
@@ -62,6 +63,51 @@ def _sanitize_alignment_response(resp: dict[str, Any]) -> dict[str, Any]:
     return resp
 
 
+def _compute_metric_status(metrics: Metrics, ideal_ranges: dict[str, str]) -> dict[str, dict[str, object]]:
+    """For each metric, compute whether it's in_range or out_of_range with delta."""
+    status: dict[str, dict[str, object]] = {}
+
+    all_metrics = {**metrics.angles, **metrics.symmetry, **metrics.stability}
+
+    for key, actual in all_metrics.items():
+        if math.isnan(actual) or math.isinf(actual):
+            status[key] = {"status": "unmeasurable", "actual": None}
+            continue
+
+        range_text = ideal_ranges.get(key)
+        if not range_text:
+            status[key] = {"status": "no_reference", "actual": round(actual, 1)}
+            continue
+
+        parts = range_text.split("-")
+        if len(parts) != 2:
+            status[key] = {"status": "no_reference", "actual": round(actual, 1)}
+            continue
+
+        try:
+            lo = float(parts[0].strip())
+            hi = float(parts[1].strip())
+        except ValueError:
+            status[key] = {"status": "no_reference", "actual": round(actual, 1)}
+            continue
+
+        lo, hi = min(lo, hi), max(lo, hi)
+
+        if lo <= actual <= hi:
+            status[key] = {"status": "in_range", "actual": round(actual, 1), "ideal": range_text}
+        else:
+            delta = min(abs(actual - lo), abs(actual - hi))
+            status[key] = {
+                "status": "out_of_range",
+                "actual": round(actual, 1),
+                "ideal": range_text,
+                "delta": round(delta, 1),
+                "direction": "too_low" if actual < lo else "too_high",
+            }
+
+    return status
+
+
 @dataclass
 class ClientState:
     last_metrics: Metrics | None = None
@@ -116,8 +162,10 @@ class AlignmentEvaluator:
         biomech_summary = {
             "expected_pose": expected_pose,
             **round_for_summary(metrics),
+            "visibility_mean": round(metrics.visibility_mean, 2),
             "user_level": user_level,
             "ideal_ranges": ideal_ranges,
+            "metric_status": _compute_metric_status(metrics, ideal_ranges),
         }
 
         summary_hash = stable_hash(biomech_summary)

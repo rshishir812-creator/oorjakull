@@ -12,6 +12,7 @@ import { POSE_DESCRIPTIONS } from './data/poseDescriptions'
 import { useVoiceGuide } from './hooks/useVoiceGuide'
 import { DEFAULT_VOICE_SETTINGS } from './hooks/useVoiceGuide'
 import type { VoiceSettings as VoiceSettingsType } from './hooks/useVoiceGuide'
+import { useTheme } from './hooks/useTheme'
 import { useThrottledState } from './hooks/useThrottledState'
 import { useOrientation } from './hooks/useOrientation'
 import { POSE_REFERENCES, worstSeverity } from './poses/reference'
@@ -99,6 +100,7 @@ export default function App() {
   const [countdown, setCountdown] = useState(0)
   const [voiceOn, setVoiceOn] = useState(true)
   const [voiceSettings, setVoiceSettings] = useState<VoiceSettingsType>(DEFAULT_VOICE_SETTINGS)
+  const { theme, toggle: toggleTheme } = useTheme()
   const [layoutMode, setLayoutMode] = useState<LayoutMode>('laptop')
   const [layoutAutoDetected, setLayoutAutoDetected] = useState(true)
   const [activePanel, setActivePanel] = useState<'instructor' | 'self'>('self')
@@ -486,13 +488,21 @@ export default function App() {
   })()
 
   return (
-    <div className="h-screen overflow-hidden bg-gradient-to-b from-slate-950 via-slate-900 to-neutral-950 text-slate-50">
+    <div className="h-screen overflow-hidden bg-slate-50 text-slate-900 transition-colors dark:bg-gradient-to-b dark:from-slate-950 dark:via-slate-900 dark:to-neutral-950 dark:text-slate-50">
       {/* ── Landing page ───────────────────────────────────────────────────── */}
       <AnimatePresence>
         {experiencePhase === 'landing' && (
           <div className="absolute inset-0 z-50 overflow-y-auto">
-            {/* Voice settings panel */}
-            <div className="absolute right-4 top-4 z-10">
+            {/* Voice settings + theme toggle */}
+            <div className="absolute right-4 top-4 z-10 flex items-center gap-2">
+              <button
+                type="button"
+                onClick={toggleTheme}
+                className="flex h-9 items-center justify-center rounded-xl border border-slate-200 bg-white/80 px-2.5 text-sm text-slate-600 backdrop-blur transition-colors hover:bg-slate-100 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10"
+                title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              >
+                {theme === 'dark' ? '☀️' : '🌙'}
+              </button>
               <VoiceSettings
                 voiceOn={voiceOn}
                 onToggleVoice={setVoiceOn}
@@ -534,7 +544,7 @@ export default function App() {
               <button
                 type="button"
                 onClick={handleBackToLanding}
-                className="flex items-center gap-1.5 rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-300 transition-colors hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/25"
+                className="flex items-center gap-1.5 rounded-2xl border border-slate-200 bg-white/80 px-3 py-2 text-sm text-slate-600 transition-colors hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10"
               >
                 ← Poses
               </button>
@@ -555,7 +565,7 @@ export default function App() {
                   <button
                     type="button"
                     onClick={() => (running || isFraming ? stopSession() : startSession())}
-                    className="h-10 rounded-2xl border border-white/10 bg-white/10 px-4 text-sm text-white transition-colors duration-300 ease-in-out hover:bg-white/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/25"
+                    className="h-10 rounded-2xl border border-slate-200 bg-white/80 px-4 text-sm text-slate-700 transition-colors duration-300 ease-in-out hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 dark:border-white/10 dark:bg-white/10 dark:text-white dark:hover:bg-white/15"
                   >
                     {running ? 'Pause' : isFraming ? 'Cancel' : 'Start Evaluation'}
                   </button>
@@ -564,22 +574,32 @@ export default function App() {
                     type="button"
                     onClick={reframeOnce}
                     disabled={isAnalyzing || isFraming}
-                    className="h-10 rounded-2xl border border-white/10 bg-white/10 px-4 text-sm text-white transition-colors duration-300 ease-in-out hover:bg-white/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/25 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="h-10 rounded-2xl border border-slate-200 bg-white/80 px-4 text-sm text-slate-700 transition-colors duration-300 ease-in-out hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/10 dark:bg-white/10 dark:text-white dark:hover:bg-white/15"
                   >
                     Reframe
                   </button>
                 </>
               )}
 
-              <label className="flex items-center gap-2 text-sm text-slate-200">
+              <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-200">
                 <input
                   type="checkbox"
                   checked={voiceOn}
                   onChange={(e) => setVoiceOn(e.target.checked)}
-                  className="h-4 w-4 rounded border-white/20 bg-white/10"
+                  className="h-4 w-4 rounded border-slate-300 bg-slate-100 dark:border-white/20 dark:bg-white/10"
                 />
                 🔊 Voice
               </label>
+
+              {/* Theme toggle */}
+              <button
+                type="button"
+                onClick={toggleTheme}
+                className="flex h-10 items-center gap-1.5 rounded-2xl border border-slate-200 bg-white/80 px-3 text-sm text-slate-600 transition-colors hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 dark:border-white/10 dark:bg-white/10 dark:text-slate-200 dark:hover:bg-white/15"
+                title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              >
+                {theme === 'dark' ? '☀️' : '🌙'}
+              </button>
             </div>
           </div>
 
@@ -648,7 +668,7 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => setActivePanel((p) => (p === 'self' ? 'instructor' : 'self'))}
-                  className="absolute bottom-5 left-1/2 z-30 flex -translate-x-1/2 items-center gap-2 rounded-full border border-white/20 bg-slate-900/90 px-4 py-2.5 text-sm font-medium text-white shadow-xl shadow-black/40 backdrop-blur-md transition-all active:scale-95"
+                  className="absolute bottom-5 left-1/2 z-30 flex -translate-x-1/2 items-center gap-2 rounded-full border border-slate-200 bg-white/90 px-4 py-2.5 text-sm font-medium text-slate-700 shadow-xl shadow-slate-300/40 backdrop-blur-md transition-all active:scale-95 dark:border-white/20 dark:bg-slate-900/90 dark:text-white dark:shadow-black/40"
                 >
                   <span className="text-base">🔄</span>
                   {activePanel === 'self' ? 'Show Instructor' : 'Show Self View'}
