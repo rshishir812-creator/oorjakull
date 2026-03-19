@@ -108,7 +108,7 @@ export default function App() {
   const chatStore = useChatStore(userName)
   const [layoutMode, setLayoutMode] = useState<LayoutMode>('laptop')
   const [layoutAutoDetected, setLayoutAutoDetected] = useState(true)
-  const [activePanel, setActivePanel] = useState<'instructor' | 'self'>('instructor')
+  const [activePanel, setActivePanel] = useState<'instructor' | 'self'>('self')
   const [evaluating, setEvaluating] = useState(false)
 
   // ── Orientation auto-detect ─────────────────────────────────────────────
@@ -218,7 +218,7 @@ export default function App() {
 
   const deviceFrame =
     layoutMode === 'mobile'
-      ? 'mx-auto flex h-full w-full flex-col'        // mobile: full width, no phone-frame chrome
+      ? 'relative mx-auto flex h-full w-full flex-col' // mobile: full width + relative for toggle positioning
       : 'flex h-full flex-col'
 
   // ── Auto-switch to camera view when evaluation starts ────────────────────
@@ -717,7 +717,7 @@ export default function App() {
 
               {/* View toggle — visible in mobile mode */}
               {showFlipButton && (
-                <div className="absolute bottom-5 left-1/2 z-30 flex -translate-x-1/2 overflow-hidden rounded-full border border-slate-200/80 bg-white/90 shadow-xl shadow-slate-300/40 backdrop-blur-md dark:border-white/15 dark:bg-slate-900/90 dark:shadow-black/40">
+                <div className="absolute bottom-4 left-1/2 z-50 flex -translate-x-1/2 overflow-hidden rounded-full border border-slate-200/80 bg-white/95 shadow-2xl shadow-black/30 backdrop-blur-md dark:border-white/15 dark:bg-slate-900/95 dark:shadow-black/50" style={{ marginBottom: 'env(safe-area-inset-bottom, 0px)' }}>
                   <button
                     type="button"
                     onClick={() => setActivePanel('instructor')}
