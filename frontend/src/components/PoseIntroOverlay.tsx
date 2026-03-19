@@ -18,6 +18,19 @@ interface PoseIntroOverlayProps {
   score?: number | null
   /** Only used in results phase */
   feedbackSummary?: string
+  // ── Sequence props ───────────────────────────────────────────────────────
+  isInSequence?: boolean
+  /** 0-based index of the current pose in the sequence */
+  sequenceIndex?: number
+  sequenceTotalPoses?: number
+  /** Name of the next pose (undefined on last step) */
+  nextPoseName?: string
+  /** Side-specific note shown in intro phase */
+  sideNote?: string
+  /** Called when user confirms moving to the next sequence pose */
+  onNextInSequence?: () => void
+  /** Called when user wants to exit the sequence entirely */
+  onExitSequence?: () => void
 }
 
 function MediaThumb({ src, alt }: { src: string; alt: string }) {
@@ -48,6 +61,13 @@ export default function PoseIntroOverlay({
   onTryAnother,
   score,
   feedbackSummary,
+  isInSequence = false,
+  sequenceIndex,
+  sequenceTotalPoses,
+  nextPoseName,
+  sideNote,
+  onNextInSequence,
+  onExitSequence,
 }: PoseIntroOverlayProps) {
   const [showButton, setShowButton] = useState(false)
   const isReady = visibleLandmarkCount >= 29
@@ -148,6 +168,20 @@ export default function PoseIntroOverlay({
 
           {/* Card content */}
           <div className="relative rounded-3xl border border-white/10 bg-black/50 p-8 text-center backdrop-blur">
+            {/* Sequence progress pill */}
+            {isInSequence && sequenceTotalPoses && (
+              <motion.div
+                className="mb-4 flex justify-center"
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/35 bg-amber-500/15 px-3 py-1 text-xs font-semibold text-amber-300">
+                  ☀️ Pose {(sequenceIndex ?? 0) + 1} of {sequenceTotalPoses}
+                </span>
+              </motion.div>
+            )}
+
             {/* Reference image — large & prominent */}
             {fullSrc && (
               <motion.div
@@ -189,6 +223,18 @@ export default function PoseIntroOverlay({
               >
                 {description.introScript}
               </motion.p>
+            )}
+
+            {/* Side note (sequence-specific instruction, e.g. "Switch legs") */}
+            {sideNote && (
+              <motion.div
+                className="mt-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-2.5 text-xs text-amber-300"
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.6 }}
+              >
+                💡 {sideNote}
+              </motion.div>
             )}
 
             {/* Voice indicator */}
@@ -234,7 +280,7 @@ export default function PoseIntroOverlay({
                       onClick={onBack}
                       className="w-full rounded-2xl border border-white/10 bg-white/5 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-white/10 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
                     >
-                      ← Back to Poses
+                      {isInSequence ? '← Exit Sequence' : '← Back to Poses'}
                     </button>
                   )}
                 </motion.div>
@@ -368,6 +414,15 @@ export default function PoseIntroOverlay({
       transition={{ duration: 0.35 }}
     >
       <div className="mx-4 w-full max-w-md rounded-2xl border border-white/15 bg-black/70 p-8 text-center backdrop-blur">
+        {/* Sequence progress pill */}
+        {isInSequence && sequenceTotalPoses && (
+          <div className="mb-4 flex justify-center">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/35 bg-amber-500/15 px-3 py-1 text-xs font-semibold text-amber-300">
+              ☀️ Pose {(sequenceIndex ?? 0) + 1} of {sequenceTotalPoses}
+            </span>
+          </div>
+        )}
+
         {/* Score */}
         <motion.div
           className="mb-2 text-5xl font-bold tabular-nums"
@@ -411,7 +466,7 @@ export default function PoseIntroOverlay({
         )}
 
         <motion.div
-          className="flex flex-col gap-3 sm:flex-row"
+          className="flex flex-col gap-3"
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.45 }}
@@ -423,13 +478,32 @@ export default function PoseIntroOverlay({
           >
             🔄  Try Again
           </button>
-          <button
-            type="button"
-            onClick={onTryAnother}
-            className="flex-1 rounded-2xl border border-white/15 bg-white/10 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/25"
-          >
-            🧘  Try Another Pose
-          </button>
+          {isInSequence ? (
+            <>
+              <button
+                type="button"
+                onClick={onNextInSequence}
+                className="w-full rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 py-3 text-sm font-semibold text-white shadow-lg shadow-amber-900/40 transition-all hover:from-amber-400 hover:to-orange-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
+              >
+                {nextPoseName ? `Next: ${nextPoseName} →` : '✓ Finish Sequence'}
+              </button>
+              <button
+                type="button"
+                onClick={onExitSequence}
+                className="mt-1 text-xs text-slate-500 underline-offset-2 transition-colors hover:text-slate-300 hover:underline focus:outline-none"
+              >
+                Exit Sequence
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              onClick={onTryAnother}
+              className="flex-1 rounded-2xl border border-white/15 bg-white/10 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/25"
+            >
+              🧘  Try Another Pose
+            </button>
+          )}
         </motion.div>
       </div>
     </motion.div>

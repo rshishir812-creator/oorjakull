@@ -19,9 +19,12 @@ import { POSE_REFERENCES, worstSeverity } from './poses/reference'
 import WelcomePage from './components/WelcomePage'
 import ChatBot from './components/ChatBot'
 import { useChatStore } from './hooks/useChatStore'
+import SequenceCompleteOverlay from './components/SequenceCompleteOverlay'
+import { SEQUENCES } from './data/sequences'
+import type { PoseSequence, SequenceStep } from './data/sequences'
 
 type FramingState = 'cameraLoading' | 'notFramed' | 'partiallyFramed' | 'handsNotRaised' | 'fullyFramed'
-type ExperiencePhase = 'welcome' | 'landing' | 'intro' | 'framing' | 'evaluating' | 'results'
+type ExperiencePhase = 'welcome' | 'landing' | 'intro' | 'framing' | 'evaluating' | 'results' | 'sequence-complete'
 
 const REQUIRED_LANDMARKS: Record<
   string,
@@ -114,6 +117,14 @@ export default function App() {
   const [evaluating, setEvaluating] = useState(false)
 
   // ── Orientation auto-detect ─────────────────────────────────────────────
+  // ── Sequence state ─────────────────────────────────────────────────────
+  const [isInSequence, setIsInSequence] = useState(false)
+  const [sequenceId, setSequenceId] = useState<string>('')
+  const [sequenceName, setSequenceName] = useState<string>('')
+  const [sequencePoses, setSequencePoses] = useState<SequenceStep[]>([])
+  const [sequenceIndex, setSequenceIndex] = useState(0)
+  const [sequenceResults, setSequenceResults] = useState<Array<{ pose: string; score: number | null; sideNote?: string }>>([])
+
   const { isMobile, isPortraitMobile } = useOrientation()
 
   // Auto-detect layout mode on first load (and when device changes), unless user overrode
@@ -280,6 +291,7 @@ export default function App() {
     setExpectedPose(pose as ExpectedPose)
     resetAlignmentState()
     setVisibleLandmarkCount(0)
+    setIsInSequence(false)
     setExperiencePhase('intro')
   }
 
@@ -287,6 +299,72 @@ export default function App() {
     cancelVoice()
     setExperiencePhase('framing')
   }
+  function handleSelectSequence(seq: PoseSequence) {
+    cancelVoice()
+    stopSession()
+    resetAlignmentState()
+    setVisibleLandmarkCount(0)
+    setIsInSequence(true)
+    setSequenceId(seq.id)
+    setSequenceName(seq.name)
+    setSequencePoses(seq.steps)
+    setSequenceIndex(0)
+    setSequenceResults([])
+    setExpectedPose(seq.steps[0].pose as ExpectedPose)
+    setExperiencePhase('intro')
+  }
+
+  function handleNextInSequence() {
+    const currentResult = {
+      pose: expectedPose,
+      score: alignment.score ?? null,
+      sideNote: sequencePoses[sequenceIndex]?.sideNote,
+    }
+    const nextIndex = sequenceIndex + 1
+    const nextResults = [...sequenceResults, currentResult]
+    setSequenceResults(nextResults)
+    if (nextIndex >= sequencePoses.length) {
+      cancelVoice()
+      stopSession()
+      resetAlignmentState()
+      setVisibleLandmarkCount(0)
+      setExperiencePhase('sequence-complete')
+    } else {
+      cancelVoice()
+      stopSession()
+      resetAlignmentState()
+      setVisibleLandmarkCount(0)
+      setSequenceIndex(nextIndex)
+      setExpectedPose(sequencePoses[nextIndex].pose as ExpectedPose)
+      setExperiencePhase('intro')
+    }
+  }
+
+  function handleExitSequence() {
+    cancelVoice()
+    stopSession()
+    resetAlignmentState()
+    setVisibleLandmarkCount(0)
+    setIsInSequence(false)
+    setSequenceResults([])
+    setSequenceIndex(0)
+    setExperiencePhase('landing')
+  }
+
+  function handleRestartSequence() {
+    const seq = SEQUENCES.find((s) => s.id === sequenceId)
+    if (!seq) { handleExitSequence(); return }
+    cancelVoice()
+    stopSession()
+    resetAlignmentState()
+    setVisibleLandmarkCount(0)
+    setSequenceIndex(0)
+    setSequenceResults([])
+    setSequencePoses(seq.steps)
+    setExpectedPose(seq.steps[0].pose as ExpectedPose)
+    setExperiencePhase('intro')
+  }
+
 
   function handleFramingReady() {
     cancelVoice()
@@ -315,6 +393,9 @@ export default function App() {
     stopSession()
     resetAlignmentState()
     setVisibleLandmarkCount(0)
+    setIsInSequence(false)
+    setSequenceResults([])
+    setSequenceIndex(0)
     setExperiencePhase('landing')
   }
 
@@ -325,6 +406,9 @@ export default function App() {
     chatStore.setChatOpen(true)
     resetAlignmentState()
     setVisibleLandmarkCount(0)
+    setIsInSequence(false)
+    setSequenceResults([])
+    setSequenceIndex(0)
     setExperiencePhase('landing')
   }
 
@@ -505,16 +589,22 @@ export default function App() {
         ? feedbackParts.join('. ')
         : resp.correction_message
 
+      const afterPrompt = isInSequence
+        ? sequenceIndex + 1 < sequencePoses.length
+          ? `Well done! Next up is ${sequencePoses[sequenceIndex + 1].pose}. Tap the button when you are ready.`
+          : 'Wonderful! You have completed the full sequence. Tap the button to see your results.'
+        : 'Would you like to try this pose again, or try a different pose?'
+
       if (feedbackText) {
         speakFeedback(feedbackText, () => {
           // After feedback is fully read, ask user what they want to do
           setExperiencePhase('results')
-          speak('Would you like to try this pose again, or try a different pose?')
+          speak(afterPrompt)
         })
       } else {
         // No feedback text — go straight to results
         setExperiencePhase('results')
-        speak('Would you like to try this pose again, or try a different pose?')
+        speak(afterPrompt)
       }
     } catch (e) {
       setAlignment({
@@ -589,6 +679,8 @@ export default function App() {
               poses={poseOptions}
               onSelectPose={handleSelectPose}
               onBackHome={handleBackToHome}
+              sequences={SEQUENCES}
+              onSelectSequence={handleSelectSequence}
             />
           </div>
         )}
@@ -605,13 +697,41 @@ export default function App() {
             visibleLandmarkCount={visibleLandmarkCount}
             voiceEnabled={voiceOn}
             onNext={handleIntroNext}
-            onBack={handleTryAnother}
+            onBack={isInSequence ? handleExitSequence : handleTryAnother}
+            isInSequence={isInSequence}
+            sequenceIndex={sequenceIndex}
+            sequenceTotalPoses={sequencePoses.length}
+            sideNote={sequencePoses[sequenceIndex]?.sideNote}
           />
         )}
       </AnimatePresence>
 
+      {/* ── Sequence complete page ─────────────────────────────────────────── */}
+      <AnimatePresence>
+        {experiencePhase === 'sequence-complete' && (
+          <div className="absolute inset-0 z-50 overflow-y-auto">
+            <div className="absolute right-4 top-4 z-10 flex items-center gap-2">
+              <button
+                type="button"
+                onClick={toggleTheme}
+                className="flex h-9 items-center justify-center rounded-xl border border-slate-200 bg-white/80 px-2.5 text-sm text-slate-600 backdrop-blur transition-colors hover:bg-slate-100 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10"
+                title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              >
+                {theme === 'dark' ? '☀️' : '🌙'}
+              </button>
+            </div>
+            <SequenceCompleteOverlay
+              sequenceName={sequenceName}
+              results={sequenceResults}
+              onPracticeAgain={handleRestartSequence}
+              onHome={handleExitSequence}
+            />
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* ── Practice area (framing + evaluating phases) ────────────────────── */}
-      {experiencePhase !== 'welcome' && experiencePhase !== 'landing' && experiencePhase !== 'intro' && (
+      {experiencePhase !== 'welcome' && experiencePhase !== 'landing' && experiencePhase !== 'intro' && experiencePhase !== 'sequence-complete' && (
         <div className="mx-auto flex h-full max-w-6xl flex-col overflow-hidden px-2 py-1.5 sm:px-3 sm:py-3">
           {/* Header — compact on mobile */}
           <div className="mb-1.5 flex items-center justify-between gap-2 sm:mb-3 sm:flex-wrap sm:gap-3">
@@ -625,6 +745,11 @@ export default function App() {
               </button>
               <div className="min-w-0">
                 <div className="truncate text-sm font-semibold tracking-tight sm:text-lg">{expectedPose}</div>
+                {isInSequence && (
+                  <div className="text-[11px] font-normal text-slate-400 dark:text-slate-500">
+                    ☀️ Sequence · {sequenceIndex + 1}/{sequencePoses.length}
+                  </div>
+                )}
               </div>
             </div>
             <div className="flex items-center gap-1.5 sm:flex-wrap sm:gap-3">
@@ -813,9 +938,15 @@ export default function App() {
                   visibleLandmarkCount={visibleLandmarkCount}
                   voiceEnabled={voiceOn}
                   onNext={handleTryAgain}
-                  onTryAnother={handleTryAnother}
+                  onTryAnother={isInSequence ? handleExitSequence : handleTryAnother}
                   score={alignment.score}
                   feedbackSummary={alignment.correction_message}
+                  isInSequence={isInSequence}
+                  sequenceIndex={sequenceIndex}
+                  sequenceTotalPoses={sequencePoses.length}
+                  nextPoseName={sequencePoses[sequenceIndex + 1]?.pose}
+                  onNextInSequence={isInSequence ? handleNextInSequence : undefined}
+                  onExitSequence={isInSequence ? handleExitSequence : undefined}
                 />
               )}
             </AnimatePresence>
