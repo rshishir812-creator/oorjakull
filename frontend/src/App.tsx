@@ -98,6 +98,7 @@ function newClientId(): string {
 export default function App() {
   const [experiencePhase, setExperiencePhase] = useState<ExperiencePhase>('welcome')
   const [userName, setUserName] = useState('')
+  const [signedInWithGoogle, setSignedInWithGoogle] = useState(false)
   const [expectedPose, setExpectedPose] = useState<ExpectedPose>('Warrior II')
   const [userLevel] = useState<UserLevel>('beginner')
   const [running, setRunning] = useState(false)
@@ -248,6 +249,29 @@ export default function App() {
   function handleWelcomeEnter(name: string) {
     setUserName(name)
     setExperiencePhase('landing')
+  }
+
+  function handleGoogleSignIn(name: string) {
+    setSignedInWithGoogle(true)
+    handleWelcomeEnter(name)
+  }
+
+  function handleSignOut() {
+    cancelVoice()
+    stopSession()
+    resetAlignmentState()
+    setVisibleLandmarkCount(0)
+    setSignedInWithGoogle(false)
+    setUserName('')
+    setExperiencePhase('welcome')
+  }
+
+  function handleBackToHome() {
+    cancelVoice()
+    stopSession()
+    resetAlignmentState()
+    setVisibleLandmarkCount(0)
+    setExperiencePhase('welcome')
   }
 
   function handleSelectPose(pose: string) {
@@ -528,7 +552,13 @@ export default function App() {
       <AnimatePresence>
         {experiencePhase === 'welcome' && (
           <div className="absolute inset-0 z-50">
-            <WelcomePage onEnter={handleWelcomeEnter} />
+            <WelcomePage
+              userName={userName}
+              signedInWithGoogle={signedInWithGoogle}
+              onEnter={handleWelcomeEnter}
+              onGoogleSignIn={handleGoogleSignIn}
+              onSignOut={handleSignOut}
+            />
           </div>
         )}
       </AnimatePresence>
@@ -558,6 +588,7 @@ export default function App() {
             <LandingPage
               poses={poseOptions}
               onSelectPose={handleSelectPose}
+              onBackHome={handleBackToHome}
             />
           </div>
         )}

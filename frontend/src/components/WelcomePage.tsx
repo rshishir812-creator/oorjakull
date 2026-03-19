@@ -1,10 +1,14 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { GoogleLogin, type CredentialResponse } from '@react-oauth/google'
+import { GoogleLogin, googleLogout, type CredentialResponse } from '@react-oauth/google'
 import { jwtDecode } from 'jwt-decode'
 
 interface WelcomePageProps {
+  userName?: string
+  signedInWithGoogle?: boolean
   onEnter: (name: string) => void
+  onGoogleSignIn: (name: string) => void
+  onSignOut: () => void
 }
 
 interface GoogleJwtPayload {
@@ -14,10 +18,23 @@ interface GoogleJwtPayload {
   picture?: string
 }
 
-export default function WelcomePage({ onEnter }: WelcomePageProps) {
+export default function WelcomePage({
+  userName,
+  signedInWithGoogle = false,
+  onEnter,
+  onGoogleSignIn,
+  onSignOut,
+}: WelcomePageProps) {
   const [name, setName] = useState('')
   const [showGuestForm, setShowGuestForm] = useState(false)
   const [authError, setAuthError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (signedInWithGoogle) {
+      setShowGuestForm(false)
+      setAuthError(null)
+    }
+  }, [signedInWithGoogle])
 
   const handleGoogleSuccess = (response: CredentialResponse) => {
     setAuthError(null)
@@ -28,7 +45,7 @@ export default function WelcomePage({ onEnter }: WelcomePageProps) {
     try {
       const decoded = jwtDecode<GoogleJwtPayload>(response.credential)
       const displayName = decoded.given_name || decoded.name || 'Yogi'
-      onEnter(displayName)
+      onGoogleSignIn(displayName)
     } catch {
       setAuthError('Could not read your Google profile. Please try again.')
     }
@@ -42,6 +59,14 @@ export default function WelcomePage({ onEnter }: WelcomePageProps) {
     e.preventDefault()
     const trimmed = name.trim()
     if (trimmed) onEnter(trimmed)
+  }
+
+  const handleSignOut = () => {
+    googleLogout()
+    setAuthError(null)
+    setName('')
+    setShowGuestForm(false)
+    onSignOut()
   }
 
   return (
@@ -78,23 +103,65 @@ export default function WelcomePage({ onEnter }: WelcomePageProps) {
           animate={{ opacity: 1 }}
           transition={{ delay: 0.4, duration: 0.5 }}
         >
-          {/* Google Sign-In */}
-          <div className="flex flex-col items-center gap-3">
-            <p className="text-sm font-medium text-slate-600 dark:text-slate-300">
-              Sign in to get started
-            </p>
-            <div className="flex justify-center">
-              <GoogleLogin
-                onSuccess={handleGoogleSuccess}
-                onError={handleGoogleError}
-                shape="pill"
-                size="large"
-                text="continue_with"
-                theme="outline"
-                width="320"
-              />
+          {signedInWithGoogle && userName ? (
+            <motion.div
+              className="rounded-3xl border border-emerald-200/70 bg-white/90 p-5 text-left shadow-lg shadow-emerald-500/10 backdrop-blur dark:border-emerald-400/20 dark:bg-white/5"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.25 }}
+            >
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-600/80 dark:text-emerald-300/80">
+                Signed in with Google
+              </p>
+              <h2 className="mt-2 text-xl font-semibold text-slate-900 dark:text-white">
+                Welcome back, {userName}
+              </h2>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                Continue your guided practice or sign out to switch accounts.
+              </p>
+              <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+                <button
+                  type="button"
+                  onClick={() => onEnter(userName)}
+                  className="flex-1 rounded-2xl bg-emerald-500 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-500/30 transition-all hover:bg-emerald-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+                >
+                  Continue as {userName}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSignOut}
+                  className="rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm font-semibold text-slate-600 shadow-sm transition-all hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10"
+                >
+                  Sign out
+                </button>
+              </div>
+            </motion.div>
+          ) : (
+            <div className="rounded-3xl border border-slate-200/80 bg-white/80 p-5 shadow-lg shadow-slate-200/40 backdrop-blur dark:border-white/10 dark:bg-white/5 dark:shadow-black/10">
+              <div className="flex flex-col items-center gap-3">
+                <p className="text-sm font-medium text-slate-600 dark:text-slate-300">
+                  Sign in to get started
+                </p>
+                <div className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 shadow-sm dark:border-white/10 dark:bg-slate-950/60">
+                  <div className="flex justify-center">
+                    <GoogleLogin
+                      onSuccess={handleGoogleSuccess}
+                      onError={handleGoogleError}
+                      shape="pill"
+                      size="large"
+                      text="continue_with"
+                      theme="outline"
+                      logo_alignment="left"
+                      width="320"
+                    />
+                  </div>
+                </div>
+                <p className="text-xs text-slate-400 dark:text-slate-500">
+                  Secure Google sign-in, styled to match your practice space.
+                </p>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Error message */}
           <AnimatePresence>

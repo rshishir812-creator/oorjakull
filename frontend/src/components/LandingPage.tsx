@@ -19,12 +19,29 @@ const cardVariants = {
 export default function LandingPage(props: {
   poses: string[]
   onSelectPose: (pose: string) => void
+  onBackHome: () => void
 }) {
-  const { poses, onSelectPose } = props
+  const { poses, onSelectPose, onBackHome } = props
 
   return (
     <div className="min-h-screen overflow-y-auto bg-gradient-to-b from-slate-50 via-white to-slate-100 text-slate-900 dark:from-slate-950 dark:via-slate-900 dark:to-neutral-950 dark:text-slate-50">
       <div className="mx-auto max-w-6xl px-4 py-12">
+        <motion.div
+          className="mb-6 flex justify-start"
+          initial={{ opacity: 0, y: -12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, ease: 'easeOut' }}
+        >
+          <button
+            type="button"
+            onClick={onBackHome}
+            className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white/85 px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition-all hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10"
+          >
+            <span aria-hidden="true">←</span>
+            Back to home
+          </button>
+        </motion.div>
+
         {/* Header */}
         <motion.div
           className="mb-12 text-center"
