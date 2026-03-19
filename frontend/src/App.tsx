@@ -108,7 +108,7 @@ export default function App() {
   const chatStore = useChatStore(userName)
   const [layoutMode, setLayoutMode] = useState<LayoutMode>('laptop')
   const [layoutAutoDetected, setLayoutAutoDetected] = useState(true)
-  const [activePanel, setActivePanel] = useState<'instructor' | 'self'>('self')
+  const [activePanel, setActivePanel] = useState<'instructor' | 'self'>('instructor')
   const [evaluating, setEvaluating] = useState(false)
 
   // ── Orientation auto-detect ─────────────────────────────────────────────
@@ -126,8 +126,8 @@ export default function App() {
     setLayoutMode(mode)
   }
 
-  // In portrait-mobile mode, show only one panel at a time
-  const showFlipButton = layoutMode === 'mobile' && isPortraitMobile
+  // In mobile mode, show only one panel at a time with a toggle
+  const showFlipButton = layoutMode === 'mobile'
 
   const [framingEnabled, setFramingEnabled] = useState(false)
   const [framingUiVisible, setFramingUiVisible] = useState(false)
@@ -214,16 +214,19 @@ export default function App() {
   const pageLayoutClass =
     layoutMode === 'laptop'
       ? 'grid min-h-0 flex-1 grid-cols-1 gap-3 lg:grid-cols-2'
-      : showFlipButton
-        ? 'flex min-h-0 flex-1 flex-col'           // portrait-mobile: single panel, no gap
-        : 'flex min-h-0 flex-1 flex-col gap-3'      // landscape-mobile: stacked with gap
+      : 'flex min-h-0 flex-1 flex-col'              // mobile: single full-screen panel
 
   const deviceFrame =
     layoutMode === 'mobile'
-      ? showFlipButton
-        ? 'mx-auto flex h-full w-full flex-col bg-black/20'  // portrait: full width, no phone-frame padding
-        : 'mx-auto flex h-full w-full max-w-[440px] flex-col rounded-[32px] border border-white/10 bg-black/20 p-3 shadow-2xl shadow-black/40'
+      ? 'mx-auto flex h-full w-full flex-col'        // mobile: full width, no phone-frame chrome
       : 'flex h-full flex-col'
+
+  // ── Auto-switch to camera view when evaluation starts ────────────────────
+  useEffect(() => {
+    if (experiencePhase === 'evaluating' && layoutMode === 'mobile') {
+      setActivePanel('self')
+    }
+  }, [experiencePhase, layoutMode])
 
   // ── Voice intro when entering 'intro' phase ──────────────────────────────
   useEffect(() => {
@@ -712,16 +715,32 @@ export default function App() {
                 )}
               </div>
 
-              {/* Flip button — visible only in portrait-mobile mode */}
+              {/* View toggle — visible in mobile mode */}
               {showFlipButton && (
-                <button
-                  type="button"
-                  onClick={() => setActivePanel((p) => (p === 'self' ? 'instructor' : 'self'))}
-                  className="absolute bottom-5 left-1/2 z-30 flex -translate-x-1/2 items-center gap-2 rounded-full border border-slate-200 bg-white/90 px-4 py-2.5 text-sm font-medium text-slate-700 shadow-xl shadow-slate-300/40 backdrop-blur-md transition-all active:scale-95 dark:border-white/20 dark:bg-slate-900/90 dark:text-white dark:shadow-black/40"
-                >
-                  <span className="text-base">🔄</span>
-                  {activePanel === 'self' ? 'Show Instructor' : 'Show Self View'}
-                </button>
+                <div className="absolute bottom-5 left-1/2 z-30 flex -translate-x-1/2 overflow-hidden rounded-full border border-slate-200/80 bg-white/90 shadow-xl shadow-slate-300/40 backdrop-blur-md dark:border-white/15 dark:bg-slate-900/90 dark:shadow-black/40">
+                  <button
+                    type="button"
+                    onClick={() => setActivePanel('instructor')}
+                    className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium transition-all active:scale-95 ${
+                      activePanel === 'instructor'
+                        ? 'bg-emerald-500 text-white shadow-inner'
+                        : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                    }`}
+                  >
+                    📐 Reference
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActivePanel('self')}
+                    className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium transition-all active:scale-95 ${
+                      activePanel === 'self'
+                        ? 'bg-emerald-500 text-white shadow-inner'
+                        : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                    }`}
+                  >
+                    📷 My View
+                  </button>
+                </div>
               )}
             </div>
 
