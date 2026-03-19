@@ -86,7 +86,7 @@ export default function WelcomePage({ onEnter }: WelcomePageProps) {
             className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600/70 transition-colors hover:text-emerald-500 dark:text-emerald-400/60 dark:hover:text-emerald-300"
           >
             oorjakull.com
-            <span className="text-[10px]">↗</span>
+            <span className="opacity-60">🌐</span>
           </a>
         </motion.div>
       </motion.div>
