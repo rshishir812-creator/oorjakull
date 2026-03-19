@@ -16,9 +16,12 @@ import { useTheme } from './hooks/useTheme'
 import { useThrottledState } from './hooks/useThrottledState'
 import { useOrientation } from './hooks/useOrientation'
 import { POSE_REFERENCES, worstSeverity } from './poses/reference'
+import WelcomePage from './components/WelcomePage'
+import ChatBot from './components/ChatBot'
+import { useChatStore } from './hooks/useChatStore'
 
 type FramingState = 'cameraLoading' | 'notFramed' | 'partiallyFramed' | 'handsNotRaised' | 'fullyFramed'
-type ExperiencePhase = 'landing' | 'intro' | 'framing' | 'evaluating' | 'results'
+type ExperiencePhase = 'welcome' | 'landing' | 'intro' | 'framing' | 'evaluating' | 'results'
 
 const REQUIRED_LANDMARKS: Record<
   string,
@@ -93,7 +96,8 @@ function newClientId(): string {
 }
 
 export default function App() {
-  const [experiencePhase, setExperiencePhase] = useState<ExperiencePhase>('landing')
+  const [experiencePhase, setExperiencePhase] = useState<ExperiencePhase>('welcome')
+  const [userName, setUserName] = useState('')
   const [expectedPose, setExpectedPose] = useState<ExpectedPose>('Warrior II')
   const [userLevel] = useState<UserLevel>('beginner')
   const [running, setRunning] = useState(false)
@@ -101,6 +105,7 @@ export default function App() {
   const [voiceOn, setVoiceOn] = useState(true)
   const [voiceSettings, setVoiceSettings] = useState<VoiceSettingsType>(DEFAULT_VOICE_SETTINGS)
   const { theme, toggle: toggleTheme } = useTheme()
+  const chatStore = useChatStore(userName)
   const [layoutMode, setLayoutMode] = useState<LayoutMode>('laptop')
   const [layoutAutoDetected, setLayoutAutoDetected] = useState(true)
   const [activePanel, setActivePanel] = useState<'instructor' | 'self'>('self')
@@ -236,6 +241,11 @@ export default function App() {
   }, [experiencePhase, expectedPose, speak])
 
   // ── Handlers for experience phase transitions ─────────────────────────────
+  function handleWelcomeEnter(name: string) {
+    setUserName(name)
+    setExperiencePhase('landing')
+  }
+
   function handleSelectPose(pose: string) {
     cancelVoice()
     stopSession()
@@ -275,6 +285,16 @@ export default function App() {
   function handleTryAnother() {
     cancelVoice()
     stopSession()
+    resetAlignmentState()
+    setVisibleLandmarkCount(0)
+    setExperiencePhase('landing')
+  }
+
+  function handleEndSession() {
+    cancelVoice()
+    stopSession()
+    chatStore.addSessionSummary()
+    chatStore.setChatOpen(true)
     resetAlignmentState()
     setVisibleLandmarkCount(0)
     setExperiencePhase('landing')
@@ -424,6 +444,17 @@ export default function App() {
       setAlignment(resp)
       setStatusText('Feedback ready.')
 
+      // Push pose result to chatbot
+      chatStore.addPoseResult({
+        pose: expectedPose,
+        score: resp.score ?? null,
+        correctionMessage: resp.correction_message,
+        correctionBullets: resp.correction_bullets ?? [],
+        positiveObservation: resp.positive_observation ?? '',
+        breathCue: resp.breath_cue ?? '',
+        safetyNote: resp.safety_note ?? null,
+      })
+
       const alignedNow = resp.pose_match === 'aligned' && resp.primary_focus_area === 'none'
       if (alignedNow) {
         if (alignedPulseTimerRef.current) window.clearTimeout(alignedPulseTimerRef.current)
@@ -489,6 +520,15 @@ export default function App() {
 
   return (
     <div className="h-screen overflow-hidden bg-slate-50 text-slate-900 transition-colors dark:bg-gradient-to-b dark:from-slate-950 dark:via-slate-900 dark:to-neutral-950 dark:text-slate-50">
+      {/* ── Welcome page ──────────────────────────────────────────────────── */}
+      <AnimatePresence>
+        {experiencePhase === 'welcome' && (
+          <div className="absolute inset-0 z-50">
+            <WelcomePage onEnter={handleWelcomeEnter} />
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* ── Landing page ───────────────────────────────────────────────────── */}
       <AnimatePresence>
         {experiencePhase === 'landing' && (
@@ -536,7 +576,7 @@ export default function App() {
       </AnimatePresence>
 
       {/* ── Practice area (framing + evaluating phases) ────────────────────── */}
-      {experiencePhase !== 'landing' && experiencePhase !== 'intro' && (
+      {experiencePhase !== 'welcome' && experiencePhase !== 'landing' && experiencePhase !== 'intro' && (
         <div className="mx-auto flex h-full max-w-6xl flex-col px-3 py-3">
           {/* Header */}
           <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
@@ -599,6 +639,15 @@ export default function App() {
                 title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
               >
                 {theme === 'dark' ? '☀️' : '🌙'}
+              </button>
+
+              {/* End Session */}
+              <button
+                type="button"
+                onClick={handleEndSession}
+                className="h-10 rounded-2xl border border-rose-200 bg-rose-50 px-4 text-sm font-medium text-rose-600 transition-colors hover:bg-rose-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-400 dark:hover:bg-rose-500/20"
+              >
+                End Session
               </button>
             </div>
           </div>
@@ -710,6 +759,19 @@ export default function App() {
             </AnimatePresence>
           </div>
         </div>
+      )}
+
+      {/* ── Chatbot ──────────────────────────────────────────────────────── */}
+      {experiencePhase !== 'welcome' && (
+        <ChatBot
+          messages={chatStore.messages}
+          unreadCount={chatStore.unreadCount}
+          open={chatStore.chatOpen}
+          onToggle={chatStore.toggleChat}
+          onSendMessage={chatStore.addUserMessage}
+          onBotReply={(text) => chatStore.addBotMessage(text, false)}
+          userName={userName}
+        />
       )}
     </div>
   )
