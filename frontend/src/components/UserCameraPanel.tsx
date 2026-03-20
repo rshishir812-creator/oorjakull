@@ -208,7 +208,7 @@ export default memo(function UserCameraPanel(props: {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: 2 }}
                       transition={{ duration: 0.35, ease: 'easeInOut' }}
-                      className="rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm font-semibold text-slate-50 backdrop-blur text-center sm:px-5 sm:py-4 sm:text-xl"
+                      className="rounded-2xl border border-white/10 bg-black/40 px-3 py-2 text-xs font-semibold text-slate-50 backdrop-blur text-center xs:px-4 xs:py-2.5 xs:text-sm sm:px-5 sm:py-4 sm:text-base"
                     >
                       {props.framingMessage}
                     </motion.div>
@@ -217,16 +217,16 @@ export default memo(function UserCameraPanel(props: {
               </div>
             ) : null}
 
-            <div className="pointer-events-none absolute right-3 top-3 flex flex-col items-end gap-2">
+            <div className="pointer-events-none absolute right-2 top-2 flex flex-col items-end gap-1.5 xs:gap-2 xs:right-3 xs:top-3">
               <ScoreDisplay score={props.score} isAnalyzing={props.isAnalyzing} variant="score" />
               {badge}
             </div>
 
-            <div className="pointer-events-none absolute left-3 top-3 rounded-2xl border border-white/10 bg-black/30 px-3 py-1 text-xs text-slate-100 backdrop-blur">
+            <div className="pointer-events-none absolute left-2 top-2 rounded-2xl border border-white/10 bg-black/30 px-2 py-1 text-xs text-slate-100 backdrop-blur xs:left-3 xs:top-3 xs:px-3">
               {streamError ?? error ?? props.statusText}
             </div>
 
-            <div className="absolute bottom-14 left-3 right-3 grid gap-2 sm:bottom-3">
+            <div className="absolute bottom-4 left-2 right-2 grid gap-1.5 xs:bottom-3 xs:gap-2 xs:left-3 xs:right-3 sm:bottom-3">
               <ScoreDisplay score={props.score} isAnalyzing={props.isAnalyzing} variant="bar" />
               <FeedbackPanel
                 message={props.feedbackMessage}

@@ -38,9 +38,10 @@ export default function VoiceSettings(props: {
         </button>
       </div>
 
-      {/* Settings dropdown */}
+      {/* Settings dropdown - responsive for mobile */}
       {open && (
-        <div className="absolute right-0 top-12 w-72 rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-2xl shadow-slate-300/50 backdrop-blur-lg dark:border-white/10 dark:bg-slate-900/95 dark:shadow-black/50">
+        <div className="absolute right-0 top-12 w-[min(320px,calc(100vw-2rem))] rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-2xl shadow-slate-300/50 backdrop-blur-lg dark:border-white/10 dark:bg-slate-900/95 dark:shadow-black/50 sm:w-72 z-50"
+          style={{ maxWidth: '320px' }}>
           <h4 className="mb-3 text-sm font-semibold text-slate-900 dark:text-white">Voice Settings</h4>
 
           {/* Gender toggle */}
