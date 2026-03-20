@@ -94,6 +94,12 @@ export const useBreathworkAudio = (enabled: boolean = true, volume: number = 0.7
 
       if (!context || !buffer || !enabled) return
 
+      // Mobile browsers start AudioContext in 'suspended' state.
+      // Must resume from a user gesture or after one has occurred.
+      if (context.state === 'suspended') {
+        context.resume().catch(() => {})
+      }
+
       const source = context.createBufferSource()
       source.buffer = buffer
 
@@ -113,6 +119,26 @@ export const useBreathworkAudio = (enabled: boolean = true, volume: number = 0.7
     },
     [enabled, volume],
   )
+
+  // Warm up the AudioContext on first user interaction with the document
+  useEffect(() => {
+    if (!enabled) return
+
+    const warmUp = () => {
+      const ctx = contextRef.current
+      if (ctx && ctx.state === 'suspended') {
+        ctx.resume().catch(() => {})
+      }
+    }
+
+    document.addEventListener('click', warmUp, { once: true })
+    document.addEventListener('touchstart', warmUp, { once: true })
+
+    return () => {
+      document.removeEventListener('click', warmUp)
+      document.removeEventListener('touchstart', warmUp)
+    }
+  }, [enabled])
 
   return { playSound }
 }

@@ -28,7 +28,7 @@ export default function LandingPage(props: {
 
   return (
     <div className="min-h-screen overflow-y-auto bg-gradient-to-b from-slate-50 via-white to-slate-100 text-slate-900 dark:from-slate-950 dark:via-slate-900 dark:to-neutral-950 dark:text-slate-50">
-      <div className="mx-auto max-w-6xl px-4 py-12">
+      <div className="mx-auto max-w-6xl px-4 pb-12 pt-4 sm:pt-6">
         <motion.div
           className="mb-6 flex justify-start"
           initial={{ opacity: 0, y: -12 }}
@@ -38,7 +38,7 @@ export default function LandingPage(props: {
           <button
             type="button"
             onClick={onBackHome}
-            className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white/85 px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition-all hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10"
+            className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white/85 px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm transition-all hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10 sm:px-4 sm:py-2.5 sm:text-sm"
           >
             <span aria-hidden="true">←</span>
             Back to home

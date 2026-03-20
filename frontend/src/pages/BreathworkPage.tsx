@@ -121,12 +121,12 @@ export default function BreathworkPage({
         transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
       />
 
-      <div className="relative mx-auto max-w-6xl px-4 py-12 sm:px-6">
-        <div className="mb-8 flex justify-start">
+      <div className="relative mx-auto max-w-6xl px-4 pb-12 pt-4 sm:px-6 sm:pt-6">
+        <div className="mb-6 flex justify-start sm:mb-8">
           <button
             type="button"
             onClick={onBackHome}
-            className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-semibold text-slate-200 backdrop-blur transition hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400"
+            className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-200 backdrop-blur transition hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400 sm:px-4 sm:py-2.5 sm:text-sm"
           >
             <span aria-hidden="true">←</span>
             Back to home
