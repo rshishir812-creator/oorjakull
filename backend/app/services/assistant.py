@@ -65,57 +65,67 @@ class AssistantService:
         self,
         user_message: str,
         conversation_history: list[dict[str, str]] | None = None,
-    ) -> str:
+    ) -> AssistantResponse:
         """
         Generate a response from Madhu given a user message and optional conversation history.
 
-        Args:
-            user_message: The latest user message to respond to.
-            conversation_history: List of prior messages (list of {role: 'user'|'assistant', content: str}).
-                                  If provided, cap at last 10 messages to manage token usage.
-
         Returns:
-            The assistant's response text.
-
-        Raises:
-            RuntimeError: If Groq API key is not set or if the API call fails.
+            AssistantResponse with reply text and optional product suggestion.
         """
-        # Build the messages array: system prompt + history + new user message
+        _fallback = AssistantResponse(reply="I'm having a moment of stillness — please try again shortly.")
+
         messages: list[dict[str, str]] = [
             {"role": "system", "content": MADHU_SYSTEM_PROMPT}
         ]
 
         if conversation_history:
-            # Cap at last 10 messages to avoid token overflow
             messages.extend(conversation_history[-10:])
 
-        # Append the latest user message
         messages.append({"role": "user", "content": user_message})
 
         try:
-            # Call Groq with the same pattern as the pose evaluator
             self._llm._ensure_client()
             resp = self._llm._client.chat.completions.create(
-                model=settings.groq_model,  # Use the same model as configured
-                temperature=0.7,  # Slightly higher for conversational warmth
+                model=settings.groq_model,
+                temperature=0.7,
+                response_format={"type": "json_object"},
                 messages=messages,
             )
 
-            # Extract the response text
-            reply_text = ""
+            raw = ""
             if resp and resp.choices:
-                reply_text = (resp.choices[0].message.content or "").strip()
+                raw = (resp.choices[0].message.content or "").strip()
 
-            return reply_text or "I'm having a moment of stillness — please try again shortly."
+            if not raw:
+                return _fallback
+
+            # Parse JSON response
+            try:
+                data = json.loads(raw)
+            except json.JSONDecodeError:
+                return AssistantResponse(reply=raw or _fallback.reply)
+
+            reply_text = (data.get("reply") or "").strip()
+            if not reply_text:
+                return _fallback
+
+            suggestion: ProductSuggestion | None = None
+            suggestion_data = data.get("suggestion")
+            if suggestion_data and isinstance(suggestion_data, dict):
+                try:
+                    suggestion = ProductSuggestion(**suggestion_data)
+                except Exception:
+                    suggestion = None
+
+            return AssistantResponse(reply=reply_text, suggestion=suggestion)
 
         except Exception as e:
-            # Log error and return graceful fallback
             error_msg = str(e).lower()
             if "rate_limit" in error_msg or "429" in error_msg or "quota" in error_msg:
-                return "I'm having a moment of stillness — please try again shortly."
+                return _fallback
             elif "groq_api_key" in error_msg:
                 raise RuntimeError("GROQ_API_KEY is not set")
             else:
-                # Log the error for debugging, then return fallback
                 print(f"Assistant error: {e}")
+                return _fallback
                 return "I'm having a moment of stillness — please try again shortly."
