@@ -1,9 +1,48 @@
 import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import type { ChatMessage, PoseResultData } from '../hooks/useChatStore'
+import type { ChatMessage, PoseResultData, ProductSuggestion } from '../hooks/useChatStore'
 import { callAssistant } from '../api/client'
 
 /* ── Sub-components ──────────────────────────────────────────────────────── */
+
+function ProductSuggestionCard({
+  suggestion,
+  onNavigate,
+}: {
+  suggestion: ProductSuggestion
+  onNavigate?: (type: 'breathwork' | 'pose', id: string) => void
+}) {
+  const icon = suggestion.type === 'breathwork' ? '🌬️' : '🧘'
+  const accentClass =
+    suggestion.type === 'breathwork'
+      ? 'border-teal-200/70 from-teal-50 to-cyan-50 dark:border-teal-800/40 dark:from-teal-950/40 dark:to-cyan-950/30'
+      : 'border-emerald-200/70 from-emerald-50 to-teal-50 dark:border-emerald-800/40 dark:from-emerald-950/40 dark:to-teal-950/30'
+  const btnClass =
+    suggestion.type === 'breathwork'
+      ? 'bg-teal-500 hover:bg-teal-400'
+      : 'bg-emerald-500 hover:bg-emerald-400'
+
+  return (
+    <div className={`rounded-xl border bg-gradient-to-br p-3 ${accentClass}`}>
+      <div className="flex items-start gap-2.5">
+        <span className="mt-0.5 text-base leading-none">{icon}</span>
+        <div className="min-w-0 flex-1">
+          <div className="text-xs font-semibold text-slate-700 dark:text-slate-200">{suggestion.label}</div>
+          <div className="mt-1 text-xs leading-relaxed text-slate-500 dark:text-slate-400">{suggestion.reason}</div>
+        </div>
+      </div>
+      {onNavigate && (
+        <button
+          type="button"
+          onClick={() => onNavigate(suggestion.type, suggestion.id)}
+          className={`mt-2.5 w-full rounded-lg py-1.5 text-xs font-semibold text-white transition ${btnClass}`}
+        >
+          Explore →
+        </button>
+      )}
+    </div>
+  )
+}
 
 function PoseResultCard({ data }: { data: PoseResultData }) {
   const scoreColor =
