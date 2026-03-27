@@ -130,6 +130,21 @@ assistant_service = AssistantService()
 
 app.include_router(breathwork_router)
 
+
+@app.get("/api/debug/env")
+def debug_env():
+    """Temporary diagnostic — delete after confirming env vars work."""
+    import os
+    return {
+        "GOOGLE_CLIENT_ID": bool(os.getenv("GOOGLE_CLIENT_ID")),
+        "VITE_GOOGLE_CLIENT_ID": bool(os.getenv("VITE_GOOGLE_CLIENT_ID")),
+        "SUPABASE_URL": bool(os.getenv("SUPABASE_URL")),
+        "SUPABASE_SERVICE_KEY": bool(os.getenv("SUPABASE_SERVICE_KEY")),
+        "settings.google_client_id": bool(settings.google_client_id),
+        "settings.supabase_url": bool(settings.supabase_url),
+    }
+
+
 # ── Google Cloud Text-to-Speech voices ──────────────────────────────────────
 # Neural2 voices for en-IN — consistent across all browsers.
 _TTS_VOICES = {
