@@ -50,7 +50,7 @@ function cacheSet(key: string, blob: Blob) {
 // ── Resolve the backend base URL (same logic as App.tsx) ───────────────────
 function getBaseUrl(): string {
   return (
-    (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, '') ??
+    (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/api\/?$/, '').replace(/\/$/, '') ??
     'http://localhost:8000'
   )
 }

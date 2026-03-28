@@ -188,7 +188,7 @@ export default function App() {
 
   const { speak, speakFeedback, cancel: cancelVoice } = useVoiceGuide(voiceOn, voiceSettings)
 
-  const baseUrl = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, '') ?? 'http://localhost:8000'
+  const baseUrl = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/api\/?$/, '').replace(/\/$/, '') ?? 'http://localhost:8000'
 
   const [poseOptions, setPoseOptions] = useState<string[]>(() => POSE_REFERENCES.map((p) => p.pose))
   const [trainMediaByPose, setTrainMediaByPose] = useState<Record<string, TrainMedia[]>>({})

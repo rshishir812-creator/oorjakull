@@ -69,6 +69,7 @@ class Settings:
             "capacitor://localhost",
             "https://localhost",
             "https://oorjakull-six.vercel.app",
+            "https://oorjakull.com",
             "https://www.oorjakull.com",
         ],
     )

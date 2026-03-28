@@ -15,7 +15,7 @@ import { RiskSignalExtractor } from '../safety/riskSignalExtractor'
 import { RiskScoringEngine } from '../safety/riskScoringEngine'
 import type { Landmark } from '../api/client'
 
-const BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, '') ?? 'http://localhost:8000'
+const BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/api\/?$/, '').replace(/\/$/, '') ?? 'http://localhost:8000'
 
 // ── Auth helpers ────────────────────────────────────────────────────────────
 

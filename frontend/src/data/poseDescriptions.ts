@@ -444,6 +444,12 @@ export const POSE_DESCRIPTIONS: Record<string, PoseDescription> = {
     benefits: 'Hamstring mobility. Balance. Hip stability.',
     introScript: 'Welcome to Pyramid Pose (Short Stance) \u2014 Parsvottanasana. Hamstring-focused fold with controlled shorter stance. Focus on: hips square forward, front leg soft and straight, back heel grounded. Square your hips and fold with length. Step into the frame and let\'s begin.',
   },
+  'Goddess': {
+    englishName: 'Goddess Pose',
+    sanskritName: 'Utkata Konasana',
+    benefits: 'Inner thigh strength. Hip opening. Core engagement.',
+    introScript: 'Welcome to Goddess Pose \u2014 Utkata Konasana. Wide-legged squat building strength in the inner thighs and opening the hips. Focus on: feet wider than hips turned out, knees track over toes, spine tall. Sink low with a long spine and press your knees open. Step into the frame and let\'s begin.',
+  },
   'Vrksasana': {
     englishName: 'Tree Pose (Low Foot)',
     sanskritName: 'Vrksasana',
