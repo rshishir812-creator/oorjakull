@@ -2,6 +2,7 @@ import { memo, useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import type { ExpectedPose, FocusArea, Severity, TrainMedia } from '../api/client'
 import { POSE_REFERENCES } from '../poses/reference'
+import { POSE_DESCRIPTIONS } from '../data/poseDescriptions'
 import HighlightOverlay from './HighlightOverlay'
 
 type FitRect = {
@@ -40,6 +41,7 @@ export default memo(function InstructorPanel(props: {
 }) {
   const train = props.trainMedia?.[0]
   const ref = !train ? POSE_REFERENCES.find((p) => p.pose === props.expectedPose) : null
+  const poseDesc = POSE_DESCRIPTIONS[props.expectedPose]
 
   const stageRef = useRef<HTMLDivElement | null>(null)
   const videoRef = useRef<HTMLVideoElement | null>(null)
@@ -106,7 +108,19 @@ export default memo(function InstructorPanel(props: {
       <div className="min-h-0 flex-1 px-3 pb-3">
         <div className="relative h-full overflow-hidden rounded-2xl border border-white/10 bg-black/20">
           <div ref={stageRef} className="relative h-full w-full">
-            {kind === 'video' ? (
+            {!mediaSrc ? (
+              <div className="flex h-full w-full flex-col items-center justify-center gap-3 p-6 text-center">
+                <span className="text-5xl opacity-30">🧘</span>
+                <p className="max-w-xs text-sm leading-relaxed text-slate-300/80">
+                  {poseDesc?.introScript
+                    ?.replace(/^Welcome to .+?\. /, '')
+                    .replace(/ Step into the frame.+$/, '') ?? ''}
+                </p>
+                <span className="mt-1 inline-block rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-xs text-slate-400">
+                  📷 Reference image coming soon
+                </span>
+              </div>
+            ) : kind === 'video' ? (
               <video
                 ref={videoRef}
                 src={mediaSrc}

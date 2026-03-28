@@ -629,5 +629,29 @@ export const POSE_DESCRIPTIONS: Record<string, PoseDescription> = {
     sanskritName: 'Adho Mukha Svanasana',
     benefits: 'Posterior chain stretch. Shoulder strength. Circulation.',
     introScript: 'Welcome to Downward Facing Dog \u2014 Adho Mukha Svanasana. Inverted V pose for full-body length and shoulder stability. Focus on: hands shoulder-width, hips high, spine long. Bend your knees to keep the spine long. Step into the frame and let\'s begin.',
-  }
+  },
+  'Parighasana': {
+    englishName: 'Gate Pose',
+    sanskritName: 'Parighasana',
+    benefits: 'Lateral flexibility. Intercostal stretch. Core stability.',
+    introScript: 'Welcome to Gate Pose \u2014 Parighasana. Kneeling lateral stretch opening the side body with one leg extended. Focus on: kneeling leg stable, extended leg straight, top arm reaching over ear. Lengthen through both sides of the waist and breathe into the stretch. Step into the frame and let\'s begin.',
+  },
+  'Gate Pose': {
+    englishName: 'Gate Pose',
+    sanskritName: 'Parighasana',
+    benefits: 'Lateral flexibility. Intercostal stretch. Core stability.',
+    introScript: 'Welcome to Gate Pose \u2014 Parighasana. Kneeling lateral stretch opening the side body with one leg extended. Focus on: kneeling leg stable, extended leg straight, top arm reaching over ear. Lengthen through both sides of the waist and breathe into the stretch. Step into the frame and let\'s begin.',
+  },
+  'Ustrasana': {
+    englishName: 'Camel Pose',
+    sanskritName: 'Ustrasana',
+    benefits: 'Deep backbend. Chest and hip flexor opening. Spinal flexibility.',
+    introScript: 'Welcome to Camel Pose \u2014 Ustrasana. Kneeling backbend opening the entire front body while strengthening the back. Focus on: knees hip-width, hips over knees, chest lifted before reaching back. Push hips forward and lift the heart as you reach toward your heels. Step into the frame and let\'s begin.',
+  },
+  'Camel Pose': {
+    englishName: 'Camel Pose',
+    sanskritName: 'Ustrasana',
+    benefits: 'Deep backbend. Chest and hip flexor opening. Spinal flexibility.',
+    introScript: 'Welcome to Camel Pose \u2014 Ustrasana. Kneeling backbend opening the entire front body while strengthening the back. Focus on: knees hip-width, hips over knees, chest lifted before reaching back. Push hips forward and lift the heart as you reach toward your heels. Step into the frame and let\'s begin.',
+  },
 }

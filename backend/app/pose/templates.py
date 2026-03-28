@@ -542,6 +542,36 @@ POSE_TEMPLATES: dict[str, PoseTemplate] = {
             "center_offset": "0-0.12",
         },
     ),
+    "Gate Pose": PoseTemplate(
+        name="Gate Pose",
+        pose_id="parighasana",
+        stance_side="left_front",
+        ideal_ranges={
+            "front_knee": "155-180",
+            "back_knee": "75-100",
+            "left_arm": "140-180",
+            "right_arm": "140-180",
+            "torso_tilt": "15-50",
+            "arm_level_difference": "0-0.10",
+            "hip_level_difference": "0-0.08",
+            "center_offset": "0-0.12",
+        },
+    ),
+    "Camel Pose": PoseTemplate(
+        name="Camel Pose",
+        pose_id="ustrasana",
+        stance_side="symmetric",
+        ideal_ranges={
+            "front_knee": "75-100",
+            "back_knee": "75-100",
+            "left_arm": "100-180",
+            "right_arm": "100-180",
+            "torso_tilt": "20-60",
+            "arm_level_difference": "0-0.08",
+            "hip_level_difference": "0-0.06",
+            "center_offset": "0-0.10",
+        },
+    ),
 }
 
 # ── Reverse lookup: pose_id → display_name ──────────────────────────────────
