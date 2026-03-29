@@ -28,6 +28,8 @@ class EvaluateRequest(BaseModel):
 class TTSRequest(BaseModel):
     """Request body for the text-to-speech endpoint."""
     text: str = Field(min_length=1, max_length=5000)
+    # BCP-47 language code. Examples: en-IN, hi-IN, kn-IN
+    language_code: str = Field(default="en-IN", pattern=r"^[a-z]{2}-[A-Z]{2}$")
     gender: Literal["male", "female"] = "female"
     speed: float = Field(default=1.0, ge=0.25, le=4.0)
     pitch: float = Field(default=0.0, ge=-20.0, le=20.0)

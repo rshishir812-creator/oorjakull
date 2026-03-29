@@ -1,6 +1,11 @@
 from __future__ import annotations
 
 import base64
+import hashlib
+import html
+import json
+import time
+from pathlib import Path
 import json
 import re
 import sys
@@ -139,6 +144,145 @@ _TTS_VOICES = {
 }
 _TTS_API_URL = "https://texttospeech.googleapis.com/v1/text:synthesize"
 
+# ── Google Translate v2 (REST) ─────────────────────────────────────────────
+_TRANSLATE_API_URL = "https://translation.googleapis.com/language/translate/v2"
+
+# ── Warm-instance caches (best-effort, serverless-safe) ────────────────────
+_TRANSLATION_CACHE: dict[str, tuple[float, str]] = {}
+_AUDIO_CACHE: dict[str, tuple[float, bytes]] = {}
+_CACHE_TTL_S = 60.0 * 60.0 * 24.0  # 24h
+_CACHE_MAX = 256
+
+
+def _cache_get(cache: dict[str, tuple[float, object]], key: str) -> object | None:
+    item = cache.get(key)
+    if not item:
+        return None
+    ts, value = item
+    if (time.time() - ts) > _CACHE_TTL_S:
+        cache.pop(key, None)
+        return None
+    return value
+
+
+def _cache_set(cache: dict[str, tuple[float, object]], key: str, value: object) -> None:
+    if len(cache) >= _CACHE_MAX:
+        # Evict an arbitrary (oldest-ish) entry without spending CPU on ordering.
+        cache.pop(next(iter(cache)), None)
+    cache[key] = (time.time(), value)
+
+
+def _hash_key(*parts: str) -> str:
+    h = hashlib.sha256()
+    for part in parts:
+        h.update(part.encode("utf-8", errors="ignore"))
+        h.update(b"\x1f")
+    return h.hexdigest()
+
+
+def _load_pose_library() -> tuple[dict[str, str], list[str]]:
+    """Load pose_id/name_en → name_sa mapping and a list of Sanskrit pose names."""
+    try:
+        pose_path = Path(__file__).resolve().parents[1] / "data" / "pose_library.json"  # backend/data/...
+        raw = pose_path.read_text(encoding="utf-8")
+        items = json.loads(raw)
+        en_to_sa: dict[str, str] = {}
+        sa_names: list[str] = []
+        for item in items:
+            sa = (item.get("name_sa") or "").strip()
+            if not sa:
+                continue
+            sa_names.append(sa)
+            pose_id = (item.get("pose_id") or "").strip()
+            name_en = (item.get("name_en") or "").strip()
+            if pose_id:
+                en_to_sa[pose_id] = sa
+            if name_en:
+                en_to_sa[name_en] = sa
+        # Prefer longer Sanskrit names first when replacing.
+        sa_names.sort(key=len, reverse=True)
+        return en_to_sa, sa_names
+    except Exception:
+        return {}, []
+
+
+_POSE_EN_TO_SA, _POSE_SA_NAMES = _load_pose_library()
+
+
+def _protect_sanskrit_pose_names(text: str) -> tuple[str, dict[str, str]]:
+    """Replace Sanskrit pose names with placeholders to prevent translation changes."""
+    if not text or not _POSE_SA_NAMES:
+        return text, {}
+
+    protected: dict[str, str] = {}
+    output = text
+    i = 0
+    for sa in _POSE_SA_NAMES:
+        if sa in output:
+            token = f"__POSE_{i}__"
+            i += 1
+            protected[token] = sa
+            output = output.replace(sa, token)
+    return output, protected
+
+
+def _restore_protected(text: str, protected: dict[str, str]) -> str:
+    output = text
+    for token, original in protected.items():
+        output = output.replace(token, original)
+    return output
+
+
+def _force_sanskrit_pose_names(text: str) -> str:
+    """Best-effort: replace known English pose names/pose_ids with Sanskrit."""
+    if not text or not _POSE_EN_TO_SA:
+        return text
+
+    output = text
+    # Replace longer keys first to reduce partial overlaps.
+    for k in sorted(_POSE_EN_TO_SA.keys(), key=len, reverse=True):
+        if k and k in output:
+            output = output.replace(k, _POSE_EN_TO_SA[k])
+    return output
+
+
+def _translate_target_from_bcp47(language_code: str) -> str:
+    # Google Translate target is typically the base language: hi-IN -> hi
+    return (language_code.split("-")[0] or "").lower()
+
+
+async def _translate_text(*, text: str, target_language_code: str, api_key: str) -> str:
+    target = _translate_target_from_bcp47(target_language_code)
+    cache_key = _hash_key("translate", target, text)
+    cached = _cache_get(_TRANSLATION_CACHE, cache_key)
+    if isinstance(cached, str):
+        return cached
+
+    async with httpx.AsyncClient() as client:
+        resp = await client.post(
+            f"{_TRANSLATE_API_URL}?key={api_key}",
+            json={
+                "q": text,
+                "source": "en",
+                "target": target,
+                "format": "text",
+            },
+            timeout=10.0,
+        )
+
+    if resp.status_code != 200:
+        detail = resp.text[:300] if resp.text else "Unknown translate error"
+        raise HTTPException(status_code=502, detail=f"Google Translate error: {detail}")
+
+    data = resp.json()
+    translated = data.get("data", {}).get("translations", [{}])[0].get("translatedText")
+    if not isinstance(translated, str) or not translated.strip():
+        raise HTTPException(status_code=502, detail="Google Translate error: empty translation")
+
+    translated = html.unescape(translated)
+    _cache_set(_TRANSLATION_CACHE, cache_key, translated)
+    return translated
+
 
 @app.get("/health")
 def health() -> dict[str, str]:
@@ -181,14 +325,58 @@ async def text_to_speech(req: TTSRequest) -> Response:
             detail="TTS API key not configured. Set GOOGLE_TTS_API_KEY env var.",
         )
 
-    voice_name = _TTS_VOICES.get(req.gender, _TTS_VOICES["female"])
+    language_code = (req.language_code or "en-IN").strip() or "en-IN"
+
+    # Always keep pose names in Sanskrit (best-effort) and protect Sanskrit tokens from translation.
+    source_text = _force_sanskrit_pose_names(req.text)
+    protected_text, protected_tokens = _protect_sanskrit_pose_names(source_text)
+
+    # For non-English output: translate everything (no mixed-language UX).
+    # We translate *after* forcing Sanskrit pose names, and we protect Sanskrit pose names using placeholders.
+    final_text = protected_text
+    translated = False
+    if language_code.lower() != "en-in":
+        translate_key = settings.google_translate_api_key
+        if not translate_key:
+            raise HTTPException(
+                status_code=503,
+                detail="Translate API key not configured. Set GOOGLE_TRANSLATE_API_KEY env var.",
+            )
+        final_text = await _translate_text(text=protected_text, target_language_code=language_code, api_key=translate_key)
+        translated = True
+
+    final_text = _restore_protected(final_text, protected_tokens)
+
+    # Audio cache (warm instance): includes language + voice params + final text.
+    audio_cache_key = _hash_key(
+        "tts",
+        language_code,
+        req.gender,
+        f"{req.speed:.3f}",
+        f"{req.pitch:.3f}",
+        final_text,
+    )
+    cached_audio = _cache_get(_AUDIO_CACHE, audio_cache_key)
+    if isinstance(cached_audio, (bytes, bytearray)):
+        headers = {
+            "X-TTS-Language": language_code,
+            "X-TTS-Translated": "1" if translated else "0",
+            "X-TTS-Cache": "HIT",
+        }
+        return Response(content=bytes(cached_audio), media_type="audio/mpeg", headers=headers)
+
+    # Voice selection:
+    # - For en-IN, keep the pinned Neural2 voices for consistent audio.
+    # - For Indic languages, let Google pick a suitable voice for the languageCode + gender.
+    voice: dict[str, str] = {"languageCode": language_code}
+    if language_code.lower() == "en-in":
+        voice["name"] = _TTS_VOICES.get(req.gender, _TTS_VOICES["female"])
+    else:
+        voice["ssmlGender"] = "MALE" if req.gender == "male" else "FEMALE"
 
     body = {
-        "input": {"text": req.text},
-        "voice": {
-            "languageCode": "en-IN",
-            "name": voice_name,
-        },
+        "input": {"text": final_text},
+        "voice": voice,
         "audioConfig": {
             "audioEncoding": "MP3",
             "speakingRate": req.speed,
@@ -208,7 +396,13 @@ async def text_to_speech(req: TTSRequest) -> Response:
         raise HTTPException(status_code=502, detail=f"Google TTS error: {detail}")
 
     audio_bytes = base64.b64decode(resp.json()["audioContent"])
-    return Response(content=audio_bytes, media_type="audio/mpeg")
+    _cache_set(_AUDIO_CACHE, audio_cache_key, audio_bytes)
+    headers = {
+        "X-TTS-Language": language_code,
+        "X-TTS-Translated": "1" if translated else "0",
+        "X-TTS-Cache": "MISS",
+    }
+    return Response(content=audio_bytes, media_type="audio/mpeg", headers=headers)
 
 
 @app.post("/api/evaluate", response_model=GeminiAlignmentResponse)

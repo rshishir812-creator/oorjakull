@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { VoiceSettings as VoiceSettingsType, VoiceGender } from '../hooks/useVoiceGuide'
+import type { VoiceSettings as VoiceSettingsType, VoiceGender, VoiceLanguageCode } from '../hooks/useVoiceGuide'
 
 export default function VoiceSettings(props: {
   voiceOn: boolean
@@ -14,6 +14,19 @@ export default function VoiceSettings(props: {
   const setGender = (g: VoiceGender) => {
     onChangeSettings({ ...settings, gender: g })
   }
+
+  const setLanguage = (languageCode: VoiceLanguageCode) => {
+    onChangeSettings({ ...settings, languageCode })
+  }
+
+  const languages: Array<{ code: VoiceLanguageCode; label: string }> = [
+    { code: 'en-IN', label: 'English (India)' },
+    { code: 'hi-IN', label: 'Hindi' },
+    { code: 'kn-IN', label: 'Kannada' },
+    { code: 'bn-IN', label: 'Bengali' },
+    { code: 'mr-IN', label: 'Marathi' },
+    { code: 'gu-IN', label: 'Gujarati' },
+  ]
 
   return (
     <div className="relative z-20">
@@ -44,6 +57,20 @@ export default function VoiceSettings(props: {
           style={{ maxWidth: '320px' }}>
           <h4 className="mb-3 text-sm font-semibold text-slate-900 dark:text-white">Voice Settings</h4>
 
+          {/* Language */}
+          <label className="block text-xs text-slate-500 dark:text-slate-400 mb-1">Language</label>
+          <select
+            value={settings.languageCode}
+            onChange={(e) => setLanguage(e.target.value as VoiceLanguageCode)}
+            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700 shadow-sm outline-none focus:border-emerald-400 dark:border-white/10 dark:bg-white/5 dark:text-slate-200"
+          >
+            {languages.map((l) => (
+              <option key={l.code} value={l.code}>
+                {l.label}
+              </option>
+            ))}
+          </select>
+
           {/* Gender toggle */}
           <label className="block text-xs text-slate-500 dark:text-slate-400 mb-1">Voice</label>
           <div className="flex gap-1 rounded-xl border border-slate-200 bg-slate-100 p-1 dark:border-white/10 dark:bg-white/5">
@@ -66,7 +93,7 @@ export default function VoiceSettings(props: {
 
           {/* Voice info */}
           <div className="mt-2 text-[11px] text-slate-400 dark:text-slate-500">
-            {settings.gender === 'female' ? 'en-IN Neural2-A' : 'en-IN Neural2-B'} · Indian English
+            Google TTS · {settings.languageCode} · {settings.gender === 'female' ? 'Female' : 'Male'}
           </div>
 
           {/* Speed */}

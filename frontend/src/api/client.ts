@@ -134,6 +134,7 @@ export async function evaluateAlignment(params: {
 export async function synthesizeSpeech(params: {
   baseUrl: string
   text: string
+  languageCode?: string
   gender: 'male' | 'female'
   speed: number
   pitch: number
@@ -143,6 +144,7 @@ export async function synthesizeSpeech(params: {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       text: params.text,
+      language_code: params.languageCode ?? 'en-IN',
       gender: params.gender,
       speed: params.speed,
       pitch: params.pitch,

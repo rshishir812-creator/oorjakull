@@ -1,9 +1,13 @@
 import { useCallback, useRef } from 'react'
 import { synthesizeSpeech } from '../api/client'
+import { POSE_DESCRIPTIONS } from '../data/poseDescriptions'
 
 export type VoiceGender = 'male' | 'female'
 
+export type VoiceLanguageCode = 'en-IN' | 'hi-IN' | 'kn-IN' | 'bn-IN' | 'mr-IN' | 'gu-IN'
+
 export interface VoiceSettings {
+  languageCode: VoiceLanguageCode
   rate: number          // 0.5 – 1.5  → maps to Cloud TTS speakingRate
   pitch: number         // 0.5 – 1.5  → mapped to semitones: (pitch - 1) * 20
   volume: number        // 0 – 1      → applied client-side on the Audio element
@@ -11,6 +15,7 @@ export interface VoiceSettings {
 }
 
 export const DEFAULT_VOICE_SETTINGS: VoiceSettings = {
+  languageCode: 'en-IN',
   rate: 1.00,
   pitch: 1.05,
   volume: 0.92,
@@ -30,12 +35,51 @@ export interface VoiceGuide {
 }
 
 // ── In-memory audio cache ──────────────────────────────────────────────────
-// Key: `${gender}:${rate}:${pitch}:${text}` → Value: Blob (MP3)
+// Key: `${lang}:${gender}:${rate}:${pitch}:${text}` → Value: Blob (MP3)
 const audioCache = new Map<string, Blob>()
 const MAX_CACHE = 50
 
-function cacheKey(text: string, gender: VoiceGender, rate: number, pitch: number): string {
-  return `${gender}:${rate.toFixed(2)}:${pitch.toFixed(2)}:${text}`
+type Replacement = { from: string; to: string }
+
+const POSE_NAME_REPLACEMENTS: Replacement[] = (() => {
+  const pairs: Replacement[] = []
+  const seen = new Set<string>()
+
+  for (const poseKey of Object.keys(POSE_DESCRIPTIONS)) {
+    const desc = POSE_DESCRIPTIONS[poseKey]
+    if (!desc?.sanskritName) continue
+
+    // Replace the pose key itself (often used across the app)
+    if (poseKey && !seen.has(poseKey)) {
+      pairs.push({ from: poseKey, to: desc.sanskritName })
+      seen.add(poseKey)
+    }
+
+    // Replace the English display name when available
+    if (desc.englishName && !seen.has(desc.englishName)) {
+      pairs.push({ from: desc.englishName, to: desc.sanskritName })
+      seen.add(desc.englishName)
+    }
+  }
+
+  // Longer first to avoid partial overlaps (e.g., "Warrior" inside "Warrior II")
+  pairs.sort((a, b) => b.from.length - a.from.length)
+  return pairs
+})()
+
+function normalizePoseNamesToSanskrit(text: string): string {
+  if (!text) return text
+  let output = text
+  for (const { from, to } of POSE_NAME_REPLACEMENTS) {
+    if (from && output.includes(from)) {
+      output = output.split(from).join(to)
+    }
+  }
+  return output
+}
+
+function cacheKey(text: string, languageCode: string, gender: VoiceGender, rate: number, pitch: number): string {
+  return `${languageCode}:${gender}:${rate.toFixed(2)}:${pitch.toFixed(2)}:${text}`
 }
 
 function cacheSet(key: string, blob: Blob) {
@@ -127,7 +171,8 @@ export function useVoiceGuide(
         return
       }
 
-      const key = cacheKey(text, settings.gender, settings.rate, settings.pitch)
+      const normalizedText = normalizePoseNamesToSanskrit(text)
+      const key = cacheKey(normalizedText, settings.languageCode, settings.gender, settings.rate, settings.pitch)
       const cached = audioCache.get(key)
 
       if (cached) {
@@ -140,7 +185,8 @@ export function useVoiceGuide(
 
       synthesizeSpeech({
         baseUrl: getBaseUrl(),
-        text,
+        text: normalizedText,
+        languageCode: settings.languageCode,
         gender: settings.gender,
         speed: settings.rate,
         pitch: pitchSemitones,
@@ -168,8 +214,10 @@ export function useVoiceGuide(
         onEnd?.()
         return
       }
+
+      const normalizedText = normalizePoseNamesToSanskrit(text)
       const now = Date.now()
-      if (text === lastSpokenRef.current) {
+      if (normalizedText === lastSpokenRef.current) {
         onEnd?.()
         return
       }
@@ -178,11 +226,11 @@ export function useVoiceGuide(
         return
       }
 
-      lastSpokenRef.current = text
+      lastSpokenRef.current = normalizedText
       lastSpeakTsRef.current = now
 
       // Reuse speak() which handles caching, audio playback, and error fallback
-      speak(text, onEnd)
+      speak(normalizedText, onEnd)
     },
     [voiceEnabled, speak],
   )

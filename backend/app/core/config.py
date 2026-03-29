@@ -42,6 +42,9 @@ class Settings:
     # Google Cloud Text-to-Speech (consistent voice across all browsers)
     google_tts_api_key: str | None = get_env("GOOGLE_TTS_API_KEY") or get_env("GEMINI_API_KEY")
 
+    # Google Cloud Translate v2 (REST API key)
+    google_translate_api_key: str | None = get_env("GOOGLE_TRANSLATE_API_KEY")
+
     # Performance constraints
     gemini_min_interval_s: float = float(get_env("GEMINI_MIN_INTERVAL_S", "1.0") or "1.0")
     gemini_unchanged_cooldown_s: float = float(get_env("GEMINI_UNCHANGED_COOLDOWN_S", "3.0") or "3.0")
