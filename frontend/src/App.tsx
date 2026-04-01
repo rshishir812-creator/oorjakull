@@ -41,7 +41,7 @@ import CreditIndicator from './components/CreditIndicator'
 import SignInPrompt from './components/SignInPrompt'
 import UpgradePrompt from './components/UpgradePrompt'
 
-type FramingState = 'cameraLoading' | 'notFramed' | 'partiallyFramed' | 'handsNotRaised' | 'fullyFramed'
+type FramingState = 'cameraLoading' | 'notFramed' | 'partiallyFramed' | 'fullyFramed'
 type ExperiencePhase = 'welcome' | 'landing' | 'disclaimer' | 'health-check' | 'session-briefing' | 'intro' | 'framing' | 'evaluating' | 'results' | 'sequence-complete' | 'breathwork-session'
 
 // ── Body-region → landmark index mapping for granular framing guidance ──────
@@ -124,19 +124,6 @@ function computeFraming(landmarks: Landmark[] | null): FramingResult {
     return { state: 'partiallyFramed', message: specific, missingParts }
   }
 
-  const nose = landmarks[REQUIRED_LANDMARKS.nose]
-  const leftWrist = landmarks[REQUIRED_LANDMARKS.l_wrist]
-  const rightWrist = landmarks[REQUIRED_LANDMARKS.r_wrist]
-  const handsRaised = leftWrist.y < nose.y && rightWrist.y < nose.y
-
-  if (!handsRaised) {
-    return {
-      state: 'handsNotRaised',
-      message: 'Raise both arms straight above your head to complete framing.',
-      missingParts: [],
-    }
-  }
-
   return { state: 'fullyFramed', message: 'You are now framed correctly — you may begin your practice.', missingParts: [] }
 }
 
@@ -166,16 +153,8 @@ function buildFramingCoachPrompt(result: FramingResult): FramingCoachPrompt | nu
       const shown = parts.slice(0, 3).join(', ')
       return { text: `I'm missing ${shown}. Please step back or reposition so I can see your full body.`, severity: 'partial' }
     }
-    case 'handsNotRaised':
-      return {
-        text: 'Great, I can see you! Now raise both arms straight above your head.',
-        severity: 'gentle',
-      }
     case 'fullyFramed':
-      return {
-        text: 'Perfect! You are fully in frame. Hold still — the countdown is starting.',
-        severity: 'gentle',
-      }
+      return null   // voice prompt for fullyFramed is handled by sub-phase transition
     default:
       return null
   }
@@ -256,6 +235,11 @@ export default function App() {
 
   // Visible landmark count for the framing overlay
   const [visibleLandmarkCount, setVisibleLandmarkCount] = useState(0)
+
+  // ── Framing sub-phase: detecting → posing → countdown ─────────────────────
+  const [framingSubPhase, setFramingSubPhase] = useState<'detecting' | 'posing' | 'countdown'>('detecting')
+  const posingStableCountRef = useRef(0)     // consecutive frames where body is fully framed during 'posing'
+  const POSING_STABLE_THRESHOLD = 4          // ~2 seconds at 2 Hz before starting countdown
 
   const [alignment, setAlignment] = useThrottledState<AlignmentResponse>(
     {
@@ -403,7 +387,9 @@ export default function App() {
     lastFramingTsRef.current = 0
     framingStableCountRef.current = 0
     lastFramingStateRef.current = 'cameraLoading'
-    speak(`Now, please step into the camera frame. Match the ${expectedPose} reference pose shown below. Once your body is detected, a 10 second countdown will begin automatically.`)
+    posingStableCountRef.current = 0
+    setFramingSubPhase('detecting')
+    speak(`Please step into the camera frame so your full body is visible.`)
   }, [experiencePhase, expectedPose, speak])
 
   // ── Handlers for experience phase transitions ─────────────────────────────
@@ -1257,7 +1243,39 @@ export default function App() {
 
                       // Voice coach during framing phase (independent of reframe UI)
                       if (experiencePhase === 'framing' && lms) {
-                        maybeCoachFraming(computeFraming(lms))
+                        const fr = computeFraming(lms)
+                        // Sub-phase transitions
+                        if (framingSubPhase === 'detecting') {
+                          maybeCoachFraming(fr)
+                          if (fr.state === 'fullyFramed') {
+                            setFramingSubPhase('posing')
+                            posingStableCountRef.current = 0
+                            cancelVoice()
+                            speak(`I can see you. Now get into the ${expectedPose} pose and hold steady.`)
+                          }
+                        } else if (framingSubPhase === 'posing') {
+                          if (fr.state !== 'fullyFramed') {
+                            // Body lost — drop back to detecting
+                            setFramingSubPhase('detecting')
+                            posingStableCountRef.current = 0
+                            maybeCoachFraming(fr)
+                          } else {
+                            posingStableCountRef.current += 1
+                            if (posingStableCountRef.current >= POSING_STABLE_THRESHOLD) {
+                              setFramingSubPhase('countdown')
+                              cancelVoice()
+                              speak('Hold the pose steady. I am going to evaluate your alignment.')
+                            }
+                          }
+                        } else if (framingSubPhase === 'countdown') {
+                          if (fr.state !== 'fullyFramed') {
+                            // Body lost during countdown — drop back to posing
+                            setFramingSubPhase('posing')
+                            posingStableCountRef.current = 0
+                            cancelVoice()
+                            speakFeedback('I lost you. Please get back into the pose.')
+                          }
+                        }
                       }
 
                       if (framingEnabled) {
@@ -1331,10 +1349,7 @@ export default function App() {
                   visibleLandmarkCount={visibleLandmarkCount}
                   voiceEnabled={voiceOn}
                   onNext={handleFramingReady}
-                  onCountdownStart={() => {
-                    cancelVoice()
-                    speak('Hold the pose steady. I am going to evaluate your alignment. Stay still.')
-                  }}
+                  framingSubPhase={framingSubPhase}
                 />
               )}
             </AnimatePresence>
@@ -1395,7 +1410,36 @@ export default function App() {
 
               // Voice coach during framing phase (independent of reframe UI)
               if (experiencePhase === 'framing' && lms) {
-                maybeCoachFraming(computeFraming(lms))
+                const fr = computeFraming(lms)
+                if (framingSubPhase === 'detecting') {
+                  maybeCoachFraming(fr)
+                  if (fr.state === 'fullyFramed') {
+                    setFramingSubPhase('posing')
+                    posingStableCountRef.current = 0
+                    cancelVoice()
+                    speak(`I can see you. Now get into the ${expectedPose} pose and hold steady.`)
+                  }
+                } else if (framingSubPhase === 'posing') {
+                  if (fr.state !== 'fullyFramed') {
+                    setFramingSubPhase('detecting')
+                    posingStableCountRef.current = 0
+                    maybeCoachFraming(fr)
+                  } else {
+                    posingStableCountRef.current += 1
+                    if (posingStableCountRef.current >= POSING_STABLE_THRESHOLD) {
+                      setFramingSubPhase('countdown')
+                      cancelVoice()
+                      speak('Hold the pose steady. I am going to evaluate your alignment.')
+                    }
+                  }
+                } else if (framingSubPhase === 'countdown') {
+                  if (fr.state !== 'fullyFramed') {
+                    setFramingSubPhase('posing')
+                    posingStableCountRef.current = 0
+                    cancelVoice()
+                    speakFeedback('I lost you. Please get back into the pose.')
+                  }
+                }
               }
 
               if (framingEnabled) {
