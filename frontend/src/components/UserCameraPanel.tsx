@@ -15,7 +15,7 @@ function drawSkeleton(params: {
   videoHeight: number
   objectFit?: 'cover' | 'contain'
 }) {
-  const { canvas, landmarks, displayWidth, displayHeight, videoWidth, videoHeight, objectFit = 'cover' } = params
+  const { canvas, landmarks, displayWidth, displayHeight, videoWidth, videoHeight, objectFit = 'contain' } = params
   const ctx = canvas.getContext('2d')
   if (!ctx) return
 
@@ -146,7 +146,7 @@ export default memo(function UserCameraPanel(props: {
               displayHeight,
               videoWidth: video.videoWidth,
               videoHeight: video.videoHeight,
-              objectFit: 'cover',
+              objectFit: 'contain',
             })
             const visibilityMean = landmarks.reduce((a, l) => a + l.visibility, 0) / landmarks.length
             props.onLandmarks(landmarks, visibilityMean)
@@ -181,9 +181,9 @@ export default memo(function UserCameraPanel(props: {
       )}
 
       <div className={`min-h-0 flex-1 ${props.isPortrait ? '' : 'px-3 pb-3'}`}>
-        <div className={`relative h-full overflow-hidden bg-black/40 shadow-xl shadow-black/30 ${props.isPortrait ? '' : 'rounded-2xl border border-white/10'}`}>
+        <div className={`relative h-full overflow-hidden bg-black shadow-xl shadow-black/30 ${props.isPortrait ? '' : 'rounded-2xl border border-white/10'}`}>
           <div ref={stageRef} className="relative h-full w-full">
-            <video ref={videoRef} playsInline muted className="absolute inset-0 h-full w-full object-cover" />
+            <video ref={videoRef} playsInline muted className="absolute inset-0 h-full w-full object-contain" />
             <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
 
             <div className="pointer-events-none absolute inset-0 p-3">
