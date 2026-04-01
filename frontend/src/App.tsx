@@ -138,34 +138,27 @@ function buildFramingCoachPrompt(result: FramingResult): FramingCoachPrompt | nu
   switch (result.state) {
     case 'notFramed':
       return {
-        text: 'I cannot see you yet. Please step in front of the camera so your full body is visible.',
+        text: 'I am not able to see your full body. Please step in front of the camera.',
         severity: 'critical',
       }
-    case 'partiallyFramed': {
-      const parts = result.missingParts
-      if (parts.length === 0) {
-        return { text: 'Almost there. Step back a little so I can see your entire body.', severity: 'partial' }
+    case 'partiallyFramed':
+      return {
+        text: 'I am not able to see your full body. Please step back a little.',
+        severity: 'partial',
       }
-      if (parts.length <= 2) {
-        return { text: `Almost there! I can't quite see ${parts.join(' and ')}. Adjust a little.`, severity: 'partial' }
-      }
-      // 3+ missing: group and be concise
-      const shown = parts.slice(0, 3).join(', ')
-      return { text: `I'm missing ${shown}. Please step back or reposition so I can see your full body.`, severity: 'partial' }
-    }
     case 'fullyFramed':
-      return null   // voice prompt for fullyFramed is handled by sub-phase transition
+      return null
     default:
       return null
   }
 }
 
-/** Adaptive cooldown (seconds) based on prompt severity */
+/** Adaptive cooldown based on prompt severity — kept generous to avoid chatter */
 function framingCooldown(severity: 'critical' | 'partial' | 'gentle'): number {
   switch (severity) {
-    case 'critical': return 5000   // user not visible at all — don't repeat too fast
-    case 'partial':  return 4000   // partially visible — moderate pace
-    case 'gentle':   return 6000   // almost there / done — less chatter
+    case 'critical': return 10000  // say once, wait 10s before repeating
+    case 'partial':  return 10000  // same — user needs time to adjust
+    case 'gentle':   return 10000
   }
 }
 
@@ -238,8 +231,16 @@ export default function App() {
 
   // ── Framing sub-phase: detecting → posing → countdown ─────────────────────
   const [framingSubPhase, setFramingSubPhase] = useState<'detecting' | 'posing' | 'countdown'>('detecting')
+  // Ref mirrors state synchronously so rapid onLandmarks frames can't re-enter transitions
+  const framingSubPhaseRef = useRef<'detecting' | 'posing' | 'countdown'>('detecting')
   const posingStableCountRef = useRef(0)     // consecutive frames where body is fully framed during 'posing'
   const POSING_STABLE_THRESHOLD = 4          // ~2 seconds at 2 Hz before starting countdown
+
+  /** Set sub-phase in both React state (for UI) and ref (for synchronous guards) */
+  function setSubPhase(phase: 'detecting' | 'posing' | 'countdown') {
+    framingSubPhaseRef.current = phase
+    setFramingSubPhase(phase)
+  }
 
   const [alignment, setAlignment] = useThrottledState<AlignmentResponse>(
     {
@@ -388,7 +389,7 @@ export default function App() {
     framingStableCountRef.current = 0
     lastFramingStateRef.current = 'cameraLoading'
     posingStableCountRef.current = 0
-    setFramingSubPhase('detecting')
+    setSubPhase('detecting')
     speak(`Please step into the camera frame so your full body is visible.`)
   }, [experiencePhase, expectedPose, speak])
 
@@ -1244,33 +1245,34 @@ export default function App() {
                       // Voice coach during framing phase (independent of reframe UI)
                       if (experiencePhase === 'framing' && lms) {
                         const fr = computeFraming(lms)
-                        // Sub-phase transitions
-                        if (framingSubPhase === 'detecting') {
-                          maybeCoachFraming(fr)
+                        const sub = framingSubPhaseRef.current  // synchronous read
+
+                        if (sub === 'detecting') {
                           if (fr.state === 'fullyFramed') {
-                            setFramingSubPhase('posing')
+                            // Transition → posing (ref guard prevents re-entry)
+                            setSubPhase('posing')
                             posingStableCountRef.current = 0
                             cancelVoice()
                             speak(`I can see you. Now get into the ${expectedPose} pose and hold steady.`)
-                          }
-                        } else if (framingSubPhase === 'posing') {
-                          if (fr.state !== 'fullyFramed') {
-                            // Body lost — drop back to detecting
-                            setFramingSubPhase('detecting')
-                            posingStableCountRef.current = 0
+                          } else {
+                            // Only coach if NOT about to transition
                             maybeCoachFraming(fr)
+                          }
+                        } else if (sub === 'posing') {
+                          if (fr.state !== 'fullyFramed') {
+                            setSubPhase('detecting')
+                            posingStableCountRef.current = 0
                           } else {
                             posingStableCountRef.current += 1
                             if (posingStableCountRef.current >= POSING_STABLE_THRESHOLD) {
-                              setFramingSubPhase('countdown')
+                              setSubPhase('countdown')
                               cancelVoice()
                               speak('Hold the pose steady. I am going to evaluate your alignment.')
                             }
                           }
-                        } else if (framingSubPhase === 'countdown') {
+                        } else if (sub === 'countdown') {
                           if (fr.state !== 'fullyFramed') {
-                            // Body lost during countdown — drop back to posing
-                            setFramingSubPhase('posing')
+                            setSubPhase('posing')
                             posingStableCountRef.current = 0
                             cancelVoice()
                             speakFeedback('I lost you. Please get back into the pose.')
@@ -1411,30 +1413,32 @@ export default function App() {
               // Voice coach during framing phase (independent of reframe UI)
               if (experiencePhase === 'framing' && lms) {
                 const fr = computeFraming(lms)
-                if (framingSubPhase === 'detecting') {
-                  maybeCoachFraming(fr)
+                const sub = framingSubPhaseRef.current
+
+                if (sub === 'detecting') {
                   if (fr.state === 'fullyFramed') {
-                    setFramingSubPhase('posing')
+                    setSubPhase('posing')
                     posingStableCountRef.current = 0
                     cancelVoice()
                     speak(`I can see you. Now get into the ${expectedPose} pose and hold steady.`)
-                  }
-                } else if (framingSubPhase === 'posing') {
-                  if (fr.state !== 'fullyFramed') {
-                    setFramingSubPhase('detecting')
-                    posingStableCountRef.current = 0
+                  } else {
                     maybeCoachFraming(fr)
+                  }
+                } else if (sub === 'posing') {
+                  if (fr.state !== 'fullyFramed') {
+                    setSubPhase('detecting')
+                    posingStableCountRef.current = 0
                   } else {
                     posingStableCountRef.current += 1
                     if (posingStableCountRef.current >= POSING_STABLE_THRESHOLD) {
-                      setFramingSubPhase('countdown')
+                      setSubPhase('countdown')
                       cancelVoice()
                       speak('Hold the pose steady. I am going to evaluate your alignment.')
                     }
                   }
-                } else if (framingSubPhase === 'countdown') {
+                } else if (sub === 'countdown') {
                   if (fr.state !== 'fullyFramed') {
-                    setFramingSubPhase('posing')
+                    setSubPhase('posing')
                     posingStableCountRef.current = 0
                     cancelVoice()
                     speakFeedback('I lost you. Please get back into the pose.')
