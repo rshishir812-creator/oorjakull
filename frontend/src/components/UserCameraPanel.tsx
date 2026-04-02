@@ -162,7 +162,7 @@ export default memo(function UserCameraPanel(props: {
   }, [props.running, ready, getLandmarksFromVideo, props.onLandmarks])
 
   const headerBadge = ready ? 'MediaPipe ready' : 'Loading…'
-  const fitMode = props.fullScreen ? 'cover' : 'contain'
+  const fitMode = (props.fullScreen || !props.isPortrait) ? 'cover' : 'contain'
   const framed = props.framingState === 'fullyFramed'
   const frameTone = framed ? 'text-emerald-200' : 'text-amber-200'
   const framePulse = framed ? '' : 'calib-pulse'

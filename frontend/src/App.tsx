@@ -5,7 +5,6 @@ import { evaluateAlignment, fetchTrainPoses } from './api/client'
 import InstructorPanel from './components/InstructorPanel'
 import LandingPage from './components/LandingPage'
 import AppSectionTabs from './components/AppSectionTabs'
-import LayoutToggle, { type LayoutMode } from './components/LayoutToggle'
 import PoseIntroOverlay from './components/PoseIntroOverlay'
 import UserCameraPanel from './components/UserCameraPanel'
 import VoiceSettings from './components/VoiceSettings'
@@ -194,8 +193,6 @@ export default function App() {
   const [voiceSettings, setVoiceSettings] = useState<VoiceSettingsType>(DEFAULT_VOICE_SETTINGS)
   const { theme, toggle: toggleTheme } = useTheme()
   const chatStore = useChatStore(userName)
-  const [layoutMode, setLayoutMode] = useState<LayoutMode>('laptop')
-  const [layoutAutoDetected, setLayoutAutoDetected] = useState(true)
   const [activePanel, setActivePanel] = useState<'instructor' | 'self'>('self')
   const [cameraFullScreen, setCameraFullScreen] = useState(false)
   const [evaluating, setEvaluating] = useState(false)
@@ -205,7 +202,6 @@ export default function App() {
   const [showSignInPrompt, setShowSignInPrompt] = useState(false)
   const [showUpgradePrompt, setShowUpgradePrompt] = useState(false)
 
-  // ── Orientation auto-detect ─────────────────────────────────────────────
   // ── Sequence state ─────────────────────────────────────────────────────
   const [isInSequence, setIsInSequence] = useState(false)
   const [sequenceId, setSequenceId] = useState<string>('')
@@ -216,22 +212,10 @@ export default function App() {
   const [selectedBreathworkProtocol, setSelectedBreathworkProtocol] = useState<BreathworkProtocol | null>(null)
   const [breathworkToast, setBreathworkToast] = useState<string | null>(null)
 
-  const { isMobile, isPortraitMobile } = useOrientation()
+  const { isPortraitMobile } = useOrientation()
 
-  // Auto-detect layout mode on first load (and when device changes), unless user overrode
-  useEffect(() => {
-    if (layoutAutoDetected) {
-      setLayoutMode(isMobile ? 'mobile' : 'laptop')
-    }
-  }, [isMobile, layoutAutoDetected])
-
-  const handleLayoutChange = (mode: LayoutMode) => {
-    setLayoutAutoDetected(false) // user explicitly chose
-    setLayoutMode(mode)
-  }
-
-  // In mobile mode, show only one panel at a time with a toggle
-  const showFlipButton = layoutMode === 'mobile'
+  // Mobile/laptop switcher removed on web; keep split-view layout.
+  const showFlipButton = false
 
   const [framingEnabled, setFramingEnabled] = useState(false)
   const [framingUiVisible, setFramingUiVisible] = useState(false)
@@ -246,7 +230,11 @@ export default function App() {
   // Ref mirrors state synchronously so rapid onLandmarks frames can't re-enter transitions
   const framingSubPhaseRef = useRef<'detecting' | 'posing' | 'countdown'>('detecting')
   const posingStableCountRef = useRef(0)     // consecutive frames where body is fully framed during 'posing'
+  const framingAcquireStableCountRef = useRef(0) // consecutive fullyFramed samples before detect->pose
+  const framingLoseStableCountRef = useRef(0)    // consecutive non-fullyFramed samples before pose->detect
   const POSING_STABLE_THRESHOLD = 4          // ~2 seconds at 2 Hz before starting countdown
+  const FRAMING_ACQUIRE_THRESHOLD = 2
+  const FRAMING_LOSE_THRESHOLD = 2
 
   /** Set sub-phase in both React state (for UI) and ref (for synchronous guards) */
   function setSubPhase(phase: 'detecting' | 'posing' | 'countdown') {
@@ -367,6 +355,58 @@ export default function App() {
     speakFeedback(prompt.text)
   }
 
+  function advanceFramingSubPhase(fr: FramingResult) {
+    const sub = framingSubPhaseRef.current
+
+    if (sub === 'detecting') {
+      if (fr.state === 'fullyFramed') {
+        framingAcquireStableCountRef.current += 1
+        if (framingAcquireStableCountRef.current >= FRAMING_ACQUIRE_THRESHOLD) {
+          setSubPhase('posing')
+          posingStableCountRef.current = 0
+          framingLoseStableCountRef.current = 0
+          framingAcquireStableCountRef.current = 0
+          cancelVoice()
+          speak(`I can see you. Now get into the ${expectedPose} pose and hold steady.`)
+        }
+      } else {
+        framingAcquireStableCountRef.current = 0
+        maybeCoachFraming(fr)
+      }
+      return
+    }
+
+    if (sub === 'posing') {
+      if (fr.state !== 'fullyFramed') {
+        framingLoseStableCountRef.current += 1
+        if (framingLoseStableCountRef.current >= FRAMING_LOSE_THRESHOLD) {
+          setSubPhase('detecting')
+          posingStableCountRef.current = 0
+          framingAcquireStableCountRef.current = 0
+          framingLoseStableCountRef.current = 0
+        }
+      } else {
+        framingLoseStableCountRef.current = 0
+        posingStableCountRef.current += 1
+        if (posingStableCountRef.current >= POSING_STABLE_THRESHOLD) {
+          setSubPhase('countdown')
+          cancelVoice()
+          speak('Hold the pose steady. I am going to evaluate your alignment.')
+        }
+      }
+      return
+    }
+
+    // countdown
+    if (fr.state !== 'fullyFramed') {
+      setSubPhase('posing')
+      posingStableCountRef.current = 0
+      framingLoseStableCountRef.current = 0
+      cancelVoice()
+      speakFeedback('I lost you. Please get back into the pose.')
+    }
+  }
+
   const alignedPulseTimerRef = useRef<number | null>(null)
   const [alignedPulseActive, setAlignedPulseActive] = useState(false)
   const [alignedPulseKey, setAlignedPulseKey] = useState(0)
@@ -378,22 +418,16 @@ export default function App() {
   const isAnalyzing = running || evaluating
   const isFraming = framingEnabled
 
-  const pageLayoutClass =
-    layoutMode === 'laptop'
-      ? 'grid min-h-0 flex-1 grid-cols-1 gap-3 lg:grid-cols-2'
-      : 'flex min-h-0 flex-1 flex-col'              // mobile: single full-screen panel
+  const pageLayoutClass = 'grid min-h-0 flex-1 grid-cols-1 gap-3 lg:grid-cols-2'
 
-  const deviceFrame =
-    layoutMode === 'mobile'
-      ? 'relative mx-auto flex h-full w-full flex-col' // mobile: full width + relative for toggle positioning
-      : 'flex h-full flex-col'
+  const deviceFrame = 'flex h-full flex-col'
 
   // ── Auto-switch to camera view when evaluation starts ────────────────────
   useEffect(() => {
-    if (experiencePhase === 'evaluating' && layoutMode === 'mobile') {
+    if (experiencePhase === 'evaluating') {
       setActivePanel('self')
     }
-  }, [experiencePhase, layoutMode])
+  }, [experiencePhase])
 
   // ── Voice intro when entering 'intro' phase ──────────────────────────────
   useEffect(() => {
@@ -413,6 +447,8 @@ export default function App() {
     framingStableCountRef.current = 0
     lastFramingStateRef.current = 'cameraLoading'
     posingStableCountRef.current = 0
+    framingAcquireStableCountRef.current = 0
+    framingLoseStableCountRef.current = 0
     setSubPhase('detecting')
     speak(`Please step into the camera frame so your full body is visible.`)
   }, [experiencePhase, expectedPose, speak])
@@ -1202,11 +1238,6 @@ export default function App() {
               />
             </div>
             <div className="flex items-center gap-1.5 sm:flex-wrap sm:gap-3">
-              {/* Show layout toggle only on larger screens */}
-              <div className="hidden sm:block">
-                <LayoutToggle mode={layoutMode} onChange={handleLayoutChange} autoDetected={layoutAutoDetected} />
-              </div>
-
               {experiencePhase === 'evaluating' && (
                 <>
                   <button
@@ -1316,39 +1347,7 @@ export default function App() {
                       // Voice coach during framing phase (independent of reframe UI)
                       if (experiencePhase === 'framing' && lms) {
                         const fr = computeFraming(lms)
-                        const sub = framingSubPhaseRef.current  // synchronous read
-
-                        if (sub === 'detecting') {
-                          if (fr.state === 'fullyFramed') {
-                            // Transition → posing (ref guard prevents re-entry)
-                            setSubPhase('posing')
-                            posingStableCountRef.current = 0
-                            cancelVoice()
-                            speak(`I can see you. Now get into the ${expectedPose} pose and hold steady.`)
-                          } else {
-                            // Only coach if NOT about to transition
-                            maybeCoachFraming(fr)
-                          }
-                        } else if (sub === 'posing') {
-                          if (fr.state !== 'fullyFramed') {
-                            setSubPhase('detecting')
-                            posingStableCountRef.current = 0
-                          } else {
-                            posingStableCountRef.current += 1
-                            if (posingStableCountRef.current >= POSING_STABLE_THRESHOLD) {
-                              setSubPhase('countdown')
-                              cancelVoice()
-                              speak('Hold the pose steady. I am going to evaluate your alignment.')
-                            }
-                          }
-                        } else if (sub === 'countdown') {
-                          if (fr.state !== 'fullyFramed') {
-                            setSubPhase('posing')
-                            posingStableCountRef.current = 0
-                            cancelVoice()
-                            speakFeedback('I lost you. Please get back into the pose.')
-                          }
-                        }
+                        advanceFramingSubPhase(fr)
                       }
 
                       if (framingEnabled) {
@@ -1486,37 +1485,7 @@ export default function App() {
               // Voice coach during framing phase (independent of reframe UI)
               if (experiencePhase === 'framing' && lms) {
                 const fr = computeFraming(lms)
-                const sub = framingSubPhaseRef.current
-
-                if (sub === 'detecting') {
-                  if (fr.state === 'fullyFramed') {
-                    setSubPhase('posing')
-                    posingStableCountRef.current = 0
-                    cancelVoice()
-                    speak(`I can see you. Now get into the ${expectedPose} pose and hold steady.`)
-                  } else {
-                    maybeCoachFraming(fr)
-                  }
-                } else if (sub === 'posing') {
-                  if (fr.state !== 'fullyFramed') {
-                    setSubPhase('detecting')
-                    posingStableCountRef.current = 0
-                  } else {
-                    posingStableCountRef.current += 1
-                    if (posingStableCountRef.current >= POSING_STABLE_THRESHOLD) {
-                      setSubPhase('countdown')
-                      cancelVoice()
-                      speak('Hold the pose steady. I am going to evaluate your alignment.')
-                    }
-                  }
-                } else if (sub === 'countdown') {
-                  if (fr.state !== 'fullyFramed') {
-                    setSubPhase('posing')
-                    posingStableCountRef.current = 0
-                    cancelVoice()
-                    speakFeedback('I lost you. Please get back into the pose.')
-                  }
-                }
+                advanceFramingSubPhase(fr)
               }
 
               if (framingEnabled) {
