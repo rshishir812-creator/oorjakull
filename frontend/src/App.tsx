@@ -1459,6 +1459,7 @@ export default function App() {
       {cameraFullScreen && (
         <div className="fixed inset-0 z-[60] flex flex-col bg-black">
           <UserCameraPanel
+            fullScreen
             running={running}
             countdown={countdown}
             statusText={statusText}

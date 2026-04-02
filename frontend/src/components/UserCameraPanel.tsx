@@ -60,6 +60,7 @@ export default memo(function UserCameraPanel(props: {
   framingState: 'cameraLoading' | 'notFramed' | 'partiallyFramed' | 'handsNotRaised' | 'fullyFramed'
   framingMessage: string
   isPortrait?: boolean
+  fullScreen?: boolean
 }) {
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
@@ -146,7 +147,7 @@ export default memo(function UserCameraPanel(props: {
               displayHeight,
               videoWidth: video.videoWidth,
               videoHeight: video.videoHeight,
-              objectFit: 'contain',
+              objectFit: fitMode,
             })
             const visibilityMean = landmarks.reduce((a, l) => a + l.visibility, 0) / landmarks.length
             props.onLandmarks(landmarks, visibilityMean)
@@ -161,12 +162,13 @@ export default memo(function UserCameraPanel(props: {
   }, [props.running, ready, getLandmarksFromVideo, props.onLandmarks])
 
   const headerBadge = ready ? 'MediaPipe ready' : 'Loading…'
+  const fitMode = props.fullScreen ? 'cover' : 'contain'
   const framed = props.framingState === 'fullyFramed'
   const frameTone = framed ? 'text-emerald-200' : 'text-amber-200'
   const framePulse = framed ? '' : 'calib-pulse'
 
   return (
-    <div className="min-h-0 h-full rounded-2xl border border-white/10 bg-white/5 shadow-2xl shadow-black/30 backdrop-blur flex flex-col">
+    <div className={`min-h-0 h-full ${props.fullScreen ? 'bg-black' : 'rounded-2xl border border-white/10 bg-white/5 shadow-2xl shadow-black/30 backdrop-blur'} flex flex-col`}>
       {/* Header — hidden in portrait-mobile to maximize camera space */}
       {!props.isPortrait && (
         <div className="flex items-start justify-between gap-4 p-3">
@@ -183,7 +185,7 @@ export default memo(function UserCameraPanel(props: {
       <div className={`min-h-0 flex-1 ${props.isPortrait ? '' : 'px-3 pb-3'}`}>
         <div className={`relative h-full overflow-hidden bg-black shadow-xl shadow-black/30 ${props.isPortrait ? '' : 'rounded-2xl border border-white/10'}`}>
           <div ref={stageRef} className="relative h-full w-full">
-            <video ref={videoRef} playsInline muted className="absolute inset-0 h-full w-full object-contain" />
+            <video ref={videoRef} playsInline muted className={`absolute inset-0 h-full w-full object-${fitMode}`} />
             <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
 
             <div className="pointer-events-none absolute inset-0 p-3">
