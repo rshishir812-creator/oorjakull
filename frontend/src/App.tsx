@@ -497,7 +497,8 @@ export default function App() {
 
   const pageLayoutClass = 'grid min-h-0 flex-1 grid-cols-1 gap-3 lg:grid-cols-2'
 
-  const deviceFrame = 'flex h-full flex-col'
+  
+  const [introAutoStart, setIntroAutoStart] = useState(false)
 
   // ── Auto-switch to camera view when evaluation starts ────────────────────
   useEffect(() => {
@@ -506,37 +507,20 @@ export default function App() {
     }
   }, [experiencePhase])
 
-  // ── Voice intro when entering 'intro' phase ──────────────────────────────
+  // -- Voice intro when entering 'intro' phase ------------------------------
   useEffect(() => {
     if (experiencePhase !== 'intro') return
+    setIntroAutoStart(false)
     const desc = POSE_DESCRIPTIONS[expectedPose]
-
-    // Activate mic either when TTS finishes OR after 3 s max — whichever is first.
-    // This way the user never has to wait through the full intro script before
-    // being able to say "begin" or "exit" hands-free.
-    let activated = false
-    function activateListening() {
-      if (activated) return
-      activated = true
-      startIntroVoiceCommands()
-    }
-
-    // Hard upper-bound: start listening after 3 s regardless of TTS state.
-    // 3 s aligns with when the "Let's Begin" button appears in the overlay.
-    const maxWaitTimer = setTimeout(activateListening, 3000)
-
     if (desc) {
       speak(desc.introScript, () => {
-        // 300 ms gap after audio stops so mic doesn't catch audio tail
-        setTimeout(activateListening, 300)
+        setIntroAutoStart(true)
       })
+    } else {
+      setIntroAutoStart(true)
     }
-
-    return () => {
-      activated = true        // prevent stale callbacks from firing after cleanup
-      clearTimeout(maxWaitTimer)
-    }
-  }, [experiencePhase, expectedPose, speak, voiceOn, voiceCommandSupported])
+    return () => setIntroAutoStart(false)
+  }, [experiencePhase, expectedPose, speak])
 
   // ── Voice framing prompt when entering 'framing' phase ───────────────────
   useEffect(() => {
@@ -860,26 +844,8 @@ export default function App() {
     })
   }
 
-  function startIntroVoiceCommands() {
-    if (!voiceOn || !voiceCommandSupported) return
-
-    startVoiceCommandListening((action) => {
-      if (action === 'next') {
-        handleIntroNext()
-        return
-      }
-      if (action === 'exit') {
-        if (isInSequence) {
-          handleExitSequence()
-        } else {
-          handleTryAnother()
-        }
-      }
-    })
-  }
-
   useEffect(() => {
-    if (experiencePhase !== 'results' && experiencePhase !== 'intro') {
+    if (experiencePhase !== 'results') {
       stopVoiceCommandListening()
     }
   }, [experiencePhase, stopVoiceCommandListening])
@@ -1309,7 +1275,7 @@ export default function App() {
             sequenceIndex={sequenceIndex}
             sequenceTotalPoses={sequencePoses.length}
             sideNote={sequencePoses[sequenceIndex]?.sideNote}
-            voiceListening={isVoiceCommandListening}
+            autoStart={introAutoStart}
           />
         )}
       </AnimatePresence>
