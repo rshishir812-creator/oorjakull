@@ -33,6 +33,8 @@ interface PoseIntroOverlayProps {
   onExitSequence?: () => void
   /** Sub-phase within framing: detecting body → getting into pose → countdown to evaluate */
   framingSubPhase?: 'detecting' | 'posing' | 'countdown'
+  /** Starts 10-second intro auto-begin countdown when true */
+  autoStart?: boolean
   /** Indicates active voice-command listening state */
   voiceListening?: boolean
 }
@@ -73,9 +75,14 @@ export default function PoseIntroOverlay({
   onNextInSequence,
   onExitSequence,
   framingSubPhase = 'detecting',
+  autoStart = false,
   voiceListening = false,
 }: PoseIntroOverlayProps) {
   const [showButton, setShowButton] = useState(false)
+  const [introSecondsLeft, setIntroSecondsLeft] = useState(10)
+  const [introProgress, setIntroProgress] = useState(0)
+  const introCountdownRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const introAutoTriggeredRef = useRef(false)
 
   // ── Countdown for framing phase (only runs in 'countdown' sub-phase) ─────
   const [framingCountdown, setFramingCountdown] = useState(0)
@@ -142,9 +149,58 @@ export default function PoseIntroOverlay({
   useEffect(() => {
     if (phase !== 'intro') return
     setShowButton(false)
+    setIntroSecondsLeft(10)
+    setIntroProgress(0)
+    introAutoTriggeredRef.current = false
+    if (introCountdownRef.current) {
+      clearInterval(introCountdownRef.current)
+      introCountdownRef.current = null
+    }
     const t = setTimeout(() => setShowButton(true), 2500)
-    return () => clearTimeout(t)
+    return () => {
+      clearTimeout(t)
+      if (introCountdownRef.current) {
+        clearInterval(introCountdownRef.current)
+        introCountdownRef.current = null
+      }
+    }
   }, [phase, pose])
+
+  // Intro auto-start countdown (10 s) begins only after TTS signals autoStart=true
+  useEffect(() => {
+    if (phase !== 'intro' || !showButton || !autoStart || introAutoTriggeredRef.current) return
+
+    setIntroSecondsLeft(10)
+    setIntroProgress(0)
+
+    let elapsed = 0
+    const durationMs = 10000
+    const tickMs = 100
+
+    introCountdownRef.current = setInterval(() => {
+      elapsed += tickMs
+      const nextProgress = Math.min(100, (elapsed / durationMs) * 100)
+      const secondsLeft = Math.max(0, Math.ceil((durationMs - elapsed) / 1000))
+      setIntroProgress(nextProgress)
+      setIntroSecondsLeft(secondsLeft)
+
+      if (elapsed >= durationMs) {
+        if (introCountdownRef.current) {
+          clearInterval(introCountdownRef.current)
+          introCountdownRef.current = null
+        }
+        introAutoTriggeredRef.current = true
+        setTimeout(() => stableOnNext(), 0)
+      }
+    }, tickMs)
+
+    return () => {
+      if (introCountdownRef.current) {
+        clearInterval(introCountdownRef.current)
+        introCountdownRef.current = null
+      }
+    }
+  }, [phase, showButton, autoStart, stableOnNext])
 
   const fullSrc = mediaSrc || null
 
@@ -240,22 +296,27 @@ export default function PoseIntroOverlay({
               </motion.div>
             )}
 
-            {/* Voice indicator */}
+            {/* Voice / auto-start indicator */}
             <motion.div
               className="mt-4 flex items-center justify-center gap-2 text-xs text-slate-400"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.7 }}
             >
-              {voiceEnabled ? (
+              {autoStart && showButton ? (
                 <>
-                  <span className={`inline-block h-1.5 w-1.5 rounded-full ${voiceListening ? 'animate-pulse bg-emerald-400' : 'bg-slate-500'}`} />
-                  {voiceListening ? 'Listening… say ready, next, or exit' : 'Voice guide is playing…'}
+                  <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
+                  Auto-starting soon — or tap the button to begin now
+                </>
+              ) : voiceEnabled ? (
+                <>
+                  <span className="inline-block h-1.5 w-1.5 rounded-full bg-slate-500" />
+                  Voice guide is playing…
                 </>
               ) : (
                 <>
                   <span className="inline-block h-1.5 w-1.5 rounded-full bg-slate-500" />
-                  Enable Voice for audio guidance
+                  Preparing…
                 </>
               )}
             </motion.div>
@@ -273,9 +334,30 @@ export default function PoseIntroOverlay({
                   <button
                     type="button"
                     onClick={onNext}
-                    className="w-full rounded-2xl bg-emerald-500 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-900/50 transition-colors hover:bg-emerald-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+                    className="relative w-full overflow-hidden rounded-2xl bg-emerald-600 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-900/50 transition-colors hover:bg-emerald-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
                   >
-                    Let's Begin →
+                    {/* Animated progress fill */}
+                    {autoStart && introProgress > 0 && (
+                      <motion.div
+                        className="absolute inset-y-0 left-0 bg-emerald-500"
+                        initial={{ width: '0%' }}
+                        animate={{ width: `${introProgress}%` }}
+                        transition={{ duration: 0.15, ease: 'linear' }}
+                      />
+                    )}
+                    <span className="relative z-10 flex items-center justify-center gap-2">
+                      {autoStart && !introAutoTriggeredRef.current && introSecondsLeft > 0 ? (
+                        <>
+                          <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                          </svg>
+                          Starting in {introSecondsLeft}s…
+                        </>
+                      ) : (
+                        "Let's Begin →"
+                      )}
+                    </span>
                   </button>
                   {onBack && (
                     <button
