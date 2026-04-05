@@ -284,6 +284,17 @@ export default function PoseIntroOverlay({
               </motion.p>
             )}
 
+            {description?.warnings && (
+              <motion.div
+                className="mt-3 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-2.5 text-xs text-amber-200"
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.55 }}
+              >
+                <span className="font-semibold">⚠️ Caution:</span> {description.warnings}
+              </motion.div>
+            )}
+
             {/* Side note (sequence-specific instruction, e.g. "Switch legs") */}
             {sideNote && (
               <motion.div

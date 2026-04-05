@@ -3,6 +3,7 @@ export type PoseDescription = {
   sanskritName: string
   benefits: string
   introScript: string
+  warnings?: string
 }
 
 export const POSE_DESCRIPTIONS: Record<string, PoseDescription> = {
@@ -340,13 +341,13 @@ export const POSE_DESCRIPTIONS: Record<string, PoseDescription> = {
     englishName: 'Prayer Pose',
     sanskritName: 'Pranamasana',
     benefits: 'Focus. Posture awareness. Calm start.',
-    introScript: 'Welcome to Prayer Pose \u2014 Pranamasana. Centering standing pose with feet together and palms together at heart to begin practice. Focus on: feet grounded, palms at heart, chin neutral. Grounding  both feet and breathe steadily. Step into the frame and let\'s begin.',
+    introScript: 'Come into Pranamasana, the Prayer Pose. Stand with your feet together and bring your palms to meet at heart centre. You may gently close your eyes, or keep them open if that feels more stable. Feel calm, balance, and steady breathing in this simple standing posture. Step into the frame and let\'s begin.',
   },
   'Hasta Uttanasana': {
     englishName: 'Raised Arms Pose',
     sanskritName: 'Hasta Uttanasana',
     benefits: 'Chest opening. Improved backbend. Breath expansion.',
-    introScript: 'Welcome to Raised Arms Pose \u2014 Hasta Uttanasana. Gentle standing upper back extension with arms overhead. Focus on: lift arms shoulder-width, backbend from from upper back, elongate spine. while reaching up lengthen spine instead of collapsing backward. Step into the frame and let\'s begin.',
+    introScript: 'Lift into Hasta Uttanasana, the Raised Arms Pose. Keep your feet together, inhale deeply, and sweep your arms overhead with biceps beside your ears. Open your chest and create a gentle backbend from the upper back while keeping the spine long and stable. Find balance and steady breath. Step into the frame and let\'s begin.',
   },
   'Padahastasana': {
     englishName: 'Standing Forward Fold',
@@ -358,13 +359,14 @@ export const POSE_DESCRIPTIONS: Record<string, PoseDescription> = {
     englishName: 'Garland pose',
     sanskritName: 'malasana',
     benefits: 'strengthens the pelvic floor. streches lower back and hip and ankles.',
-    introScript: 'Welcome to Garland pose \u2014 malasana. Deep squat (Indian squat), stretches groin and back, strengthens hips. Focus on: back straight, weight on the feet, palms in namaskar mudra. go down and sit in deep squat and open chest by pushing inner thighs outward. Step into the frame and let\'s begin.',
+    introScript: 'Lower into Malasana, the Garland Pose. With feet slightly wider than hip-width, squat deeply and bring your hips toward the floor. Press your palms together at heart centre and use your elbows to gently press your knees open. Use a cushion or block under your hips for better balance. Step into the frame and let\'s begin.',
+    warnings: 'Avoid or modify if you have acute knee, ankle, or hip injuries, severe lower back pain, recent surgery, weak bone density, severe sciatica, or high blood pressure.',
   },
   'Ashwa Sanchalanasana': {
     englishName: 'Equestrian Lunge',
     sanskritName: 'Ashwa Sanchalanasana',
     benefits: 'Hip flexor stretch. Leg strength. Spinal extension.',
-    introScript: 'Welcome to Equestrian Lunge \u2014 Ashwa Sanchalanasana. Low lunge opening hip flexors while building balance. Focus on: front knee over ankle, back leg long, knee down. Keep front knee stacked over ankle and breathe into the hips. Step into the frame and let\'s begin.',
+    introScript: 'Open into Ashwa Sanchalanasana. From your fold, place your right knee down on the mat and rest the top of your right foot on the mat. Press the dorsal side of the back foot gently to reduce pressure on the knee. Place both hands beside your left foot, with your left knee stacked above your left ankle, and look forward. Step into the frame and let\'s begin.',
   },
   'Phalakasana': {
     englishName: 'Plank',
@@ -376,55 +378,57 @@ export const POSE_DESCRIPTIONS: Record<string, PoseDescription> = {
     englishName: 'Downward Facing Dog',
     sanskritName: 'Adho Mukha Svanasana',
     benefits: 'Posterior chain stretch. Shoulder strength. Circulation.',
-    introScript: 'Welcome to Downward Facing Dog \u2014 Adho Mukha Svanasana. Inverted V pose for full-body length and shoulder stability. Focus on: hands shoulder-width, hips high, spine long. Bend your knees to keep the spine long. Step into the frame and let\'s begin.',
+    introScript: 'Press into Adho Mukha Svanasana, the Downward-Facing Dog. Begin in tabletop with wrists under shoulders and knees under hips. Spread your fingers wide, tuck your toes, and on an exhale lift your knees and hips up and back into an inverted V. Keep your spine long, knees softly bent if needed, and reach your heels toward the floor. Relax your neck and gaze toward your navel or thighs. Step into the frame and let\'s begin.',
+    warnings: 'Avoid if you have carpal tunnel syndrome, high blood pressure, headaches or migraines, detached retina, weak eye capillaries, heart conditions, or recent shoulder, wrist, or back injuries.',
   },
   'Tadasana': {
     englishName: 'Mountain Pose',
     sanskritName: 'Tadasana',
     benefits: 'Postural alignment. Grounding. Breath awareness.',
-    introScript: 'Welcome to Mountain Pose \u2014 Tadasana. Neutral standing posture used as baseline for alignment and breath. Focus on: feet hip-width or together, pelvis neutral, ribs stacked. Stand tall, steady, and effortless. Step into the frame and let\'s begin.',
+    introScript: 'Stand tall in Tadasana, the Mountain Pose. Root down through all four corners of your feet and engage your thighs. Lengthen your spine, relax your shoulders, and let your arms hang naturally with palms facing toward your body. Step into the frame and let\'s begin.',
   },
   'Virabhadrasana II': {
     englishName: 'Warrior II',
     sanskritName: 'Virabhadrasana II',
     benefits: 'Leg strength. Hip opening. Concentration.',
-    introScript: 'Welcome to Warrior II \u2014 Virabhadrasana II. Strong lateral stance building leg endurance and focus. Focus on: front thigh toward parallel, back foot 90 degree of front leg, arms at shoulder level. Press both feet down and widen across the collarbones. Step into the frame and let\'s begin.',
+    introScript: 'Open into Virabhadrasana II, the Warrior Two Pose. Stand facing forward with feet wider than shoulder-width and parallel. Turn your right foot out to 90 degrees, bend your right knee so it stacks above the ankle, and keep your core engaged with a gentle posterior pelvic tilt. Extend both arms to shoulder height and turn your head to look over your right hand. Step into the frame and let\'s begin.',
   },
   'Bhujangasana': {
     englishName: 'Cobra Pose',
     sanskritName: 'Bhujangasana',
     benefits: 'Spinal extension. Chest opening. Back strength.',
-    introScript: 'Welcome to Cobra Pose \u2014 Bhujangasana. Gentle backbend strengthening upper back and opening chest. Focus on: elbows close, shoulders rolled back and down, pubic bone grounded. Lift the heart forward, not just up. Step into the frame and let\'s begin.',
+    introScript: 'Rise into Bhujangasana, the Cobra Pose. Lie face down with legs extended back and feet together or hip-width. Place your palms beside your chest. Inhale, move your chest forward and up using upper-back strength, keeping your shoulders away from your ears. Let your palms carry only light support while your back does most of the lifting. Step into the frame and let\'s begin.',
   },
   'Utkatasana': {
     englishName: 'Chair Pose',
     sanskritName: 'Utkatasana',
     benefits: 'Leg endurance. Core activation. Strenghening upper back.',
-    introScript: 'Welcome to Chair Pose \u2014 Utkatasana. Raising arms above head and squat-like standing pose for legs and core. Focus on: knees track toes, weight in heels-midfoot, hip lower back and down. Sit back as if into a chair, chest lifted. Step into the frame and let\'s begin.',
+    introScript: 'Bend into Utkatasana, the Chair Pose. Inhale and stretch your arms overhead, keeping biceps close to your ears. Exhale and push your hips back as if lowering into an invisible chair, keeping knees tracking forward and behind the toes. Keep your chest lifted and core active. Step into the frame and let\'s begin.',
   },
   'Virabhadrasana I': {
     englishName: 'Warrior I',
     sanskritName: 'Virabhadrasana I',
     benefits: 'Leg strength. Hip flexor opening. Focus.',
-    introScript: 'Welcome to Warrior I \u2014 Virabhadrasana I. Lunge with hands overhead reach to build strength and stability. Focus on: front knee over ankle, hips square-ish forward, back leg strong. Anchor your back foot and rise through the fingertips. Step into the frame and let\'s begin.',
+    introScript: 'Stand with your feet 3 to 4 feet apart. Turn your right foot out to 90 degrees and your left foot inward about 15 degrees. Inhale and raise your arms to shoulder height, then exhale and bend your right knee so knee and ankle stay in one line. Gently lower the pelvis, keep the back foot rooted, and hold with steady breath in Virabhadrasana 1. Step into the frame and let\'s begin.',
+    warnings: 'Avoid if you have balance difficulties or injuries to the hips, knees, back, or shoulders.',
   },
   'Trikonasana': {
     englishName: 'Triangle Pose',
     sanskritName: 'Trikonasana',
     benefits: 'Lateral mobility. Hamstring stretch. Balance.',
-    introScript: 'Welcome to Triangle Pose \u2014 Trikonasana. Lateral extension pose improving hamstring and side-body mobility. Focus on: front leg straight but soft, bottom hand light, top arm vertical. Reach long before lowering your hand. Step into the frame and let\'s begin.',
+    introScript: 'Extend into Trikonasana, the Triangle Pose. Step your feet 3 to 4 feet apart, turn your right foot out, and keep the left foot slightly inward. Inhale and open your arms wide at shoulder height. Exhale, hinge from your right hip, place your right hand on shin, ankle, floor, or a block, and lift your left arm to the ceiling. Keep your chest open and gaze up only if your neck is comfortable. Step into the frame and let\'s begin.',
   },
   'Utthita Parsvakonasana': {
     englishName: 'Extended Side Angle (Beginner)',
     sanskritName: 'Utthita Parsvakonasana',
     benefits: 'Hip opening. Side-body stretch. Leg strength.',
-    introScript: 'Welcome to Extended Side Angle (Beginner) \u2014 Utthita Parsvakonasana. Side-body opening from a lunge with forearm support. Focus on: front knee over ankle, forearm on thigh, back leg strong and straight. Press forearm gently into thigh and reach long through top side. Step into the frame and let\'s begin.',
+    introScript: 'Open into Utthita Parsvakonasana, the Extended Side Angle. From a wide stance, turn your right foot out and bend your right knee above the ankle. Place your right hand outside the foot on the floor or a block, or rest the forearm on your thigh for modification. Extend your left arm overhead in one long line from left heel to fingertips, and keep the chest open. Step into the frame and let\'s begin.',
   },
   'Prasarita Padottanasana': {
     englishName: 'Wide-Leg Forward Fold',
     sanskritName: 'Prasarita Padottanasana',
     benefits: 'Adductor stretch. Calming inversion. Spine decompression.',
-    introScript: 'Welcome to Wide-Leg Forward Fold \u2014 Prasarita Padottanasana. Wide stance forward fold for hamstrings and inner thighs. Focus on: feet parallel more than should width apart, weight balanced, spine long. Keep weight even across both feet. Step into the frame and let\'s begin.',
+    introScript: 'Step wide into Prasarita Padottanasana, the Wide-Legged Forward Fold. Stand with feet about 3 to 4 feet apart, toes slightly inward, and outer feet parallel to mat edges. Inhale to lengthen the spine, then exhale and hinge forward from the hips with a long back. Place hands on floor or blocks, keep legs active, and breathe steadily as you deepen only with spinal length. Step into the frame and let\'s begin.',
   },
   'Ardha Uttanasana': {
     englishName: 'Half Lift',
@@ -436,19 +440,19 @@ export const POSE_DESCRIPTIONS: Record<string, PoseDescription> = {
     englishName: 'Forward Fold',
     sanskritName: 'Uttanasana',
     benefits: 'Hamstring release. Nervous system downshift. Back relief.',
-    introScript: 'Welcome to Forward Fold \u2014 Uttanasana. Classic standing fold for posterior release and quiet focus. Focus on: hinge at hips, knees can bend, weight centered. Let the fold be soft and spacious, not forced. Step into the frame and let\'s begin.',
+    introScript: 'Fold into Uttanasana, the Standing Forward Fold. Exhale and hinge from your hips while keeping your upper back long. Bring your hands beside your feet, bend knees as needed, and continue elongating your spine instead of rounding your back. Move with control and keep the neck relaxed. Step into the frame and let\'s begin.',
   },
   'Parsvottanasana': {
     englishName: 'Pyramid Pose (Short Stance)',
     sanskritName: 'Parsvottanasana',
     benefits: 'Hamstring mobility. Balance. Hip stability.',
-    introScript: 'Welcome to Pyramid Pose (Short Stance) \u2014 Parsvottanasana. Hamstring-focused fold with controlled shorter stance. Focus on: hips square forward, front leg soft and straight, back heel grounded. Square your hips and fold with length. Step into the frame and let\'s begin.',
+    introScript: 'Step into Parsvottanasana, the Pyramid Pose. From Tadasana, step one foot back and turn the back toes out slightly. Keep hips squared forward and both legs active with a soft micro-bend if needed. Inhale to lengthen your torso, then exhale and hinge over the front leg with a long spine. Focus on length before depth. Step into the frame and let\'s begin.',
   },
   'Goddess': {
     englishName: 'Goddess Pose',
     sanskritName: 'Utkata Konasana',
     benefits: 'Inner thigh strength. Hip opening. Core engagement.',
-    introScript: 'Welcome to Goddess Pose \u2014 Utkata Konasana. Wide-legged squat building strength in the inner thighs and opening the hips. Focus on: feet wider than hips turned out, knees track over toes, spine tall. Sink low with a long spine and press your knees open. Step into the frame and let\'s begin.',
+    introScript: 'Sink into Utkata Konasana, the Goddess Pose. Start standing tall, then step your feet 3 to 4 feet apart with toes turned out about 45 degrees. Exhale and lower into a squat, keeping your chest lifted and spine long, and bring palms together at heart in namaskara mudra. Keep knees tracking over toes and breathe steadily. Step into the frame and let\'s begin.',
   },
   'Vrksasana': {
     englishName: 'Tree Pose (Low Foot)',
@@ -472,25 +476,25 @@ export const POSE_DESCRIPTIONS: Record<string, PoseDescription> = {
     englishName: 'Butterfly Pose',
     sanskritName: 'Baddha Konasana',
     benefits: 'Inner thigh opening. Pelvic mobility. Calming.',
-    introScript: 'Welcome to Butterfly Pose \u2014 Baddha Konasana. Seated hip opener with soles of feet together. Focus on: spine tall, feet together, knees supported if needed. Sit tall and let the hips open gradually. Step into the frame and let\'s begin.',
+    introScript: 'Open into Baddha Konasana, the Butterfly Pose. Bring the soles of your feet together and let your knees fall open. Hold your feet, keep your spine tall and shoulders relaxed, and gently guide your knees toward the floor without force. Maintain smooth, natural breathing. Step into the frame and let\'s begin.',
   },
   'Janu Sirsasana': {
     englishName: 'Head-to-Knee Pose (Left)',
     sanskritName: 'Janu Sirsasana',
     benefits: 'Hamstring stretch. Back line release. Focus.',
-    introScript: 'Welcome to Head-to-Knee Pose (Left) \u2014 Janu Sirsasana. Asymmetrical seated fold over left leg. Focus on: left leg long, right sole to inner thigh, spine long. Lengthen first, then fold only as far as breath stays smooth. Step into the frame and let\'s begin.',
+    introScript: 'Fold into Janu Sirsasana, the Head-to-Knee Pose. Extend one leg long and place the opposite sole against the inner thigh. Inhale to lengthen your spine, then exhale and fold over the extended leg without rounding your back. Repeat on the other side. Step into the frame and let\'s begin.',
   },
   'Paschimottanasana': {
     englishName: 'Seated Forward Fold',
     sanskritName: 'Paschimottanasana',
     benefits: 'Posterior chain release. Nervous system calm. Hamstring mobility.',
-    introScript: 'Welcome to Seated Forward Fold \u2014 Paschimottanasana. Gentle seated fold prioritizing spinal length over depth without bending knees Focus on: knees straight, spine long, hands to shins/strap. straighten knees and keep your heart reaching forward. Step into the frame and let\'s begin.',
+    introScript: 'Deepen into Paschimottanasana, the Seated Forward Fold. Sit with both legs extended, inhale and lengthen your spine, then exhale and fold from your hips over your legs while keeping the back long. Reach for your shins or feet without forcing depth. Step into the frame and let\'s begin.',
   },
   'Upavistha Konasana': {
     englishName: 'Wide-Angle Seat (Upright)',
     sanskritName: 'Upavistha Konasana',
     benefits: 'Adductor mobility. Posture. Pelvic awareness.',
-    introScript: 'Welcome to Wide-Angle Seat (Upright) \u2014 Upavistha Konasana. Wide seated straddle with upright torso for safe hip opening. Focus on: sit tall, feet flexed in v shape, hands behind for support. Choose width that lets your spine stay tall. Step into the frame and let\'s begin.',
+    introScript: 'Spread into Upavistha Konasana, the Wide-Angle Seated Forward Bend. Sit tall on your sitting bones and open your legs wide to a comfortable distance with feet flexed and toes up. Inhale to lengthen the spine, then exhale and walk your hands forward from the hips, keeping your chest broad and back long. Only fold as far as you can maintain spinal length. Step into the frame and let\'s begin.',
   },
   'Gomukhasana Arms': {
     englishName: 'Cow Face Arms',
@@ -532,31 +536,32 @@ export const POSE_DESCRIPTIONS: Record<string, PoseDescription> = {
     englishName: 'Low Lunge (Left)',
     sanskritName: 'Anjaneyasana',
     benefits: 'Hip flexor stretch. Leg stability. Balance.',
-    introScript: 'Welcome to Low Lunge (Left) \u2014 Anjaneyasana. Kneeling lunge opening right hip flexor with left leg forward. Focus on: left knee over ankle, back knee padded, tailbone lengthens. Keep front heel rooted and chest broad. Step into the frame and let\'s begin.',
+    introScript: 'Sink into Anjaneyasana, the Low Lunge. From a forward fold, step one leg back and lower the back knee to the mat with the top of the back foot resting down. Keep the front knee stacked over the ankle. Inhale to lift your torso and arms overhead, then exhale and gently sink the hips forward while keeping the chest lifted. Step into the frame and let\'s begin.',
   },
   'Ardha Hanumanasana': {
     englishName: 'Half Split (Left)',
     sanskritName: 'Ardha Hanumanasana',
     benefits: 'Hamstring mobility. Hip balance. Fold prep.',
-    introScript: 'Welcome to Half Split (Left) \u2014 Ardha Hanumanasana. Hamstring stretch with front left leg extended. Focus on: left foot flexed, hips square, hands on blocks. Flex the front foot and fold only with a long back. Step into the frame and let\'s begin.',
+    introScript: 'Ease into Ardha Hanumanasana, the Half Split. Start from low lunge, then exhale and shift your hips back to straighten the front leg with toes lifting up. Keep the back knee under the hip, square your hips forward, and lengthen the spine before folding. Use blocks for support if needed and breathe steadily. Step into the frame and let\'s begin.',
   },
   'Parsva Balasana': {
     englishName: 'Side Child\'s Pose (Left)',
     sanskritName: 'Parsva Balasana',
     benefits: 'Lateral stretch. Calming. Back relief.',
-    introScript: 'Welcome to Side Child\'s Pose (Left) \u2014 Parsva Balasana. Child\'s pose variation reaching to left side for lateral stretch. Focus on: hips toward heels, arms long left, forehead supported. Send breath into the open side body. Step into the frame and let\'s begin.',
+    introScript: 'Unwind in Parsva Balasana, Thread the Needle. Begin on hands and knees with wrists under shoulders and knees under hips. Inhale to open one arm, then exhale and thread it under the opposite arm, resting shoulder and side of the head on the mat while hips stay lifted over knees. Hold for several breaths and repeat on the other side. Step into the frame and let\'s begin.',
   },
   'Salamba Bhujangasana': {
     englishName: 'Sphinx',
     sanskritName: 'Salamba Bhujangasana',
     benefits: 'Gentle backbend. Chest opening. Posture support.',
-    introScript: 'Welcome to Sphinx \u2014 Salamba Bhujangasana. Forearm backbend opening chest with low lumbar load. Focus on: elbows under shoulders, pubic bone grounded, shoulders away ears. Broaden the collarbones and keep the neck long. Step into the frame and let\'s begin.',
+    introScript: 'Settle into Salamba Bhujangasana, the Sphinx Pose. Lie face down, place elbows under shoulders, and keep forearms parallel. Inhale to lift your head, chest, and upper abdomen while keeping the pelvis grounded. Press through forearms and tops of feet, draw shoulders down, and keep your neck long with a soft forward gaze. Step into the frame and let\'s begin.',
   },
   'Salabhasana': {
     englishName: 'Locust Pose',
     sanskritName: 'Salabhasana',
     benefits: 'Posterior-chain strength. Posture. Spinal support.',
-    introScript: 'Welcome to Locust Pose \u2014 Salabhasana. Back-body strengthening pose with lifted chest/legs. Focus on: arms by sides, inner thighs active, neck long. Lift small and long, not high and tense. Step into the frame and let\'s begin.',
+    introScript: 'Lift into Salabhasana, the Locust Pose. Lie prone with legs long and arms beside the body. Inhale and lift your chest, head, and legs together, keeping length through the spine and neck. Engage your back body and glutes, hold with steady breath, then lower with control. Step into the frame and let\'s begin.',
+    warnings: 'Avoid during pregnancy or menstruation, and if you have severe back pain, slipped disc, hernia, ulcers, high blood pressure, vertigo, recent surgery, or acute neck or hip injuries.',
   },
   'Makarasana': {
     englishName: 'Crocodile Pose',
@@ -568,7 +573,8 @@ export const POSE_DESCRIPTIONS: Record<string, PoseDescription> = {
     englishName: 'Bridge Pose',
     sanskritName: 'Setu Bandhasana',
     benefits: 'Glute strength. Hip extension. Chest opening.',
-    introScript: 'Welcome to Bridge Pose \u2014 Setu Bandhasana. Supine backbend strengthening glutes and opening front body. Focus on: feet hip-width, knees parallel, shoulders grounded. Press through your feet and lift with control. Step into the frame and let\'s begin.',
+    introScript: 'Lift into Setu Bandhasana, the Bridge Pose. Lie on your back, bend your knees, and place feet hip-width near your hips. Inhale and press through feet and shoulders to lift hips upward while keeping knees parallel. Optionally interlace fingers under your back and broaden your chest. Exhale and lower down one vertebra at a time. Step into the frame and let\'s begin.',
+    warnings: 'Avoid if you have uncontrolled high blood pressure, severe migraines, abdominal hernia, pregnancy, or acute neck, shoulder, knee, or back injuries.',
   },
   'Apanasana': {
     englishName: 'Knees-to-Chest',
@@ -581,6 +587,7 @@ export const POSE_DESCRIPTIONS: Record<string, PoseDescription> = {
     sanskritName: 'Supta Matsyendrasana',
     benefits: 'Spinal rotation. Relaxation. Back release.',
     introScript: 'Welcome to Supine Twist (Left) \u2014 Supta Matsyendrasana. Reclined spinal twist with knees to left, shoulders grounded. Focus on: both shoulders heavy, knees stacked, core soft. Keep both shoulders heavy as the knees move left. Step into the frame and let\'s begin.',
+    warnings: 'Avoid if you have recent abdominal, hip, or spinal surgery, severe back injury, herniated disc, knee or shoulder injury, or pregnancy limitations.',
   },
   'Savasana': {
     englishName: 'Corpse Pose',
@@ -598,13 +605,13 @@ export const POSE_DESCRIPTIONS: Record<string, PoseDescription> = {
     englishName: 'Dancer Prep (right)',
     sanskritName: 'Natarajasana Prep',
     benefits: 'right leg Quad stretch. Balance. Posture.',
-    introScript: 'Welcome to Dancer Prep (right) \u2014 Natarajasana Prep. Beginner standing right leg quad stretch holding ankle back with opposite arm forward. Focus on: knees close together, pelvis level, standing leg active. Keep knees close and chest lifted. Step into the frame and let\'s begin.',
+    introScript: 'Balance in Natarajasana Prep, the Dancer preparation. Stand steady in Tadasana and shift weight into one leg. Bend the opposite knee, hold the inside ankle with the same-side hand, and extend the other arm forward. Inhale to lift the bent leg back and up as your chest moves slightly forward, then hold with a steady gaze. Step into the frame and let\'s begin.',
   },
   'Virabhadrasana III Prep': {
     englishName: 'Warrior III Prep(right)',
     sanskritName: 'Virabhadrasana III Prep',
     benefits: 'Balance. Posterior chain strength. Core control.',
-    introScript: 'Welcome to Warrior III Prep(right) \u2014 Virabhadrasana III Prep. Hip-hinge balance prep with hands on hips extending right leg back Focus on: hips square, standing knee soft, spine long. Reach long from crown to heel. Step into the frame and let\'s begin.',
+    introScript: 'Lean into Virabhadrasana III Prep, Warrior Three preparation. Start from Tadasana or a high lunge, bring hands to prayer or hips, and hinge forward while lifting the back leg long behind you. Keep hips level and core engaged as the torso reaches toward parallel with the floor. Hold steady, then return with control. Step into the frame and let\'s begin.',
   },
   'Parvatasana Prep': {
     englishName: 'Tabletop Inverted V Prep',
@@ -616,7 +623,7 @@ export const POSE_DESCRIPTIONS: Record<string, PoseDescription> = {
     englishName: 'Happy Baby',
     sanskritName: 'Ananda Balasana',
     benefits: 'Hip opening. Low-back release. Playful relaxation.',
-    introScript: 'Welcome to Happy Baby \u2014 Ananda Balasana. Supine hip opener holding feet/shins. Focus on: knees toward armpits, ankles over knees, low back long. Hold gently and let the breath widen the hips. Step into the frame and let\'s begin.',
+    introScript: 'Play in Ananda Balasana, the Happy Baby Pose. Lie on your back, hug your knees in, then hold the outer edges of your feet or your ankles. Stack ankles over knees with shins vertical, keep the full back grounded, and gently draw knees toward the armpits. Breathe slowly and optionally rock side to side. Step into the frame and let\'s begin.',
   },
   'Supta Baddha Konasana': {
     englishName: 'Reclined Butterfly',
@@ -628,7 +635,8 @@ export const POSE_DESCRIPTIONS: Record<string, PoseDescription> = {
     englishName: 'Downward Facing Dog',
     sanskritName: 'Adho Mukha Svanasana',
     benefits: 'Posterior chain stretch. Shoulder strength. Circulation.',
-    introScript: 'Welcome to Downward Facing Dog \u2014 Adho Mukha Svanasana. Inverted V pose for full-body length and shoulder stability. Focus on: hands shoulder-width, hips high, spine long. Bend your knees to keep the spine long. Step into the frame and let\'s begin.',
+    introScript: 'Press into Adho Mukha Svanasana, the Downward-Facing Dog. Begin in tabletop with wrists under shoulders and knees under hips. Spread your fingers wide, tuck your toes, and on an exhale lift your knees and hips up and back into an inverted V. Keep your spine long, knees softly bent if needed, and reach your heels toward the floor. Relax your neck and gaze toward your navel or thighs. Step into the frame and let\'s begin.',
+    warnings: 'Avoid if you have carpal tunnel syndrome, high blood pressure, headaches or migraines, detached retina, weak eye capillaries, heart conditions, or recent shoulder, wrist, or back injuries.',
   },
   'Parighasana': {
     englishName: 'Gate Pose',
@@ -645,8 +653,9 @@ export const POSE_DESCRIPTIONS: Record<string, PoseDescription> = {
   'Ustrasana': {
     englishName: 'Camel Pose',
     sanskritName: 'Ustrasana',
-    benefits: 'Deep backbend. Chest and hip flexor opening. Spinal flexibility.',
-    introScript: 'Welcome to Camel Pose \u2014 Ustrasana. Kneeling backbend opening the entire front body while strengthening the back. Focus on: knees hip-width, hips over knees, chest lifted before reaching back. Push hips forward and lift the heart as you reach toward your heels. Step into the frame and let\'s begin.',
+    benefits: 'Opens the entire front body including chest, abdomen, and hip flexors. Strengthens back muscles and glutes. Improves spinal flexibility and chest mobility.',
+    introScript: 'Rise into Ustrasana, the Camel Pose. Kneel with knees hip-width apart and press your hips gently forward. Inhale and begin to arch your upper back, then reach one hand at a time toward your heels while lifting the chest. Keep the neck long, or release the head back only if comfortable. Step into the frame and let\'s begin.',
+    warnings: 'Avoid if you have chronic back or neck injuries, high or low blood pressure, vertigo, migraines, or hernia.',
   },
   'Camel Pose': {
     englishName: 'Camel Pose',
